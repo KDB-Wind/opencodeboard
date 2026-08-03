@@ -455,6 +455,10 @@ export function insertUsageRecordsIgnore(
       synced_at = excluded.synced_at`,
   );
   const existingStmt = getDb().prepare('SELECT 1 FROM usage_records WHERE usg_id = ?');
+  const num = (v: unknown): number => {
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
   let inserted = 0;
   const tx = getDb().transaction(() => {
     for (const rec of records) {
@@ -466,13 +470,13 @@ export function insertUsageRecordsIgnore(
         rec.created_at,
         rec.model,
         rec.provider ?? null,
-        rec.input_tokens,
-        rec.output_tokens,
-        rec.cache_read_tokens ?? 0,
-        rec.cache_write_5m_tokens ?? 0,
-        rec.cache_write_1h_tokens ?? 0,
-        rec.cost_raw,
-        rec.cost_usd,
+        num(rec.input_tokens),
+        num(rec.output_tokens),
+        num(rec.cache_read_tokens),
+        num(rec.cache_write_5m_tokens),
+        num(rec.cache_write_1h_tokens),
+        num(rec.cost_raw),
+        num(rec.cost_usd),
         rec.key_id ?? null,
         rec.plan ?? null,
         syncedAt,

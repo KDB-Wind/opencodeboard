@@ -62,16 +62,16 @@ export function parseUsageResponse(text: string): ParsedUsageRecord[] {
     const readNumber = (name: string) => body.match(new RegExp(`${name}:(\\d+|null)`))?.[1] ?? '0';
     const createdAt = body.match(/timeCreated:\$R\[\d+\]=new Date\("([^"]+)"\)/)?.[1];
     if (!createdAt) continue;
-    const costInt = parseInt(readNumber('cost'), 10);
+    const costInt = parseOptionalToken(readNumber('cost'));
     const usgId = m[1];
     records.push({
       usg_id: usgId,
       created_at: createdAt,
       model: readString('model'),
       provider: readString('provider'),
-      input_tokens: parseInt(readNumber('inputTokens'), 10),
-      output_tokens: parseInt(readNumber('outputTokens'), 10),
-      cache_read_tokens: parseInt(readNumber('cacheReadTokens'), 10),
+      input_tokens: parseOptionalToken(readNumber('inputTokens')),
+      output_tokens: parseOptionalToken(readNumber('outputTokens')),
+      cache_read_tokens: parseOptionalToken(readNumber('cacheReadTokens')),
       cache_write_5m_tokens: parseOptionalToken(readNumber('cacheWrite5mTokens')),
       cache_write_1h_tokens: parseOptionalToken(readNumber('cacheWrite1hTokens')),
       cost_raw: costInt,
@@ -88,7 +88,9 @@ function usageServerId(): string {
 }
 
 function parseOptionalToken(value: string): number {
-  return value === 'null' ? 0 : parseInt(value, 10);
+  if (value === 'null' || value === '') return 0;
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 async function fetchWithTimeout(
