@@ -14,6 +14,10 @@
   Per-record cache breakdown: hover any input token in the usage table to see cache hit/write details
 - **用量解析与同步增强**：按字段名解析，同步自动更新已有记录
   Field-based parsing; sync updates existing records
+- **内置浏览器登录**：一键登录 OpenCode，自动获取 Auth Cookie 与 Workspace ID，手动添加仍保留
+  Built-in browser login: one-click sign-in auto-captures Auth Cookie and Workspace ID; manual entry still supported
+- **登录窗口自定义标题栏**：返回/最小化/最大化/关闭按钮与顶部加载动画，macOS 为红绿灯样式
+  Custom title bar for the login window with back/window controls and a top loading bar; macOS uses traffic-light styling
 
 ## macOS 优化 | macOS
 

@@ -79,9 +79,11 @@ export function Settings() {
 
   const [form, setForm] = useState({ name: '', auth_cookie: '', workspace_id: 'Default' });
   const [saving, setSaving] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const [syncProg, setSyncProg] = useState<Record<string, { status: string; current: number; total: number; inserted: number }>>({});
+  const [syncProg, setSyncProg] = useState<Record<string, { status: string; current: number; total: number; inserted: number; error?: string }>>({});
   const syncTimerRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
   const [autoSync, setAutoSync] = useState(true);
   const [syncInterval, setSyncInterval] = useState(300);
@@ -135,7 +137,36 @@ export function Settings() {
 
   const openAdd = () => {
     setForm({ name: '', auth_cookie: '', workspace_id: 'Default' });
+    setAutoFilled(false);
     addModal.current?.showModal();
+  };
+
+  const handleBrowserLogin = async () => {
+    if (!window.electronAPI?.loginOpenCode) {
+      toast(t('settings.loginUnavailable'), 'error');
+      return;
+    }
+    setLoggingIn(true);
+    try {
+      const result = await window.electronAPI.loginOpenCode();
+      if (result.status === 'ok') {
+        setForm((f) => ({
+          ...f,
+          workspace_id: result.workspace_id,
+          auth_cookie: result.auth_cookie,
+        }));
+        setAutoFilled(true);
+        toast(t('settings.loginSuccess'), 'success');
+      } else if (result.status === 'error') {
+        toast(t('settings.loginFailed', { msg: result.error }), 'error');
+      } else {
+        toast(t('settings.loginCancelled'), 'info');
+      }
+    } catch (e) {
+      toast(t('settings.loginFailed', { msg: (e as Error).message }), 'error');
+    } finally {
+      setLoggingIn(false);
+    }
   };
 
   const handleAdd = async () => {
@@ -166,7 +197,12 @@ export function Settings() {
           setSyncing(null);
           refetch();
         } else if (p.status === 'error' || p.status === 'timeout') {
-          toast(t('settings.toastSyncFailed'), 'error');
+          toast(
+            p.status === 'timeout'
+              ? t('settings.syncTimeout')
+              : t('settings.toastSyncFailedMsg', { msg: p.error || 'unknown' }),
+            'error',
+          );
           stopPollProgress(id);
           setSyncing(null);
         }
@@ -229,11 +265,11 @@ export function Settings() {
     try {
       await api.deleteOpenCodeAccount(deleteTarget.id);
       toast(t('settings.toastDeleted'), 'success');
+      deleteModal.current?.close();
+      setDeleteTarget(null);
       refetch();
     } catch (e) {
       toast(t('settings.toastDeleteFailed', { msg: (e as Error).message }), 'error');
-    } finally {
-      setDeleteTarget(null);
     }
   };
 
@@ -571,6 +607,20 @@ export function Settings() {
         <div className="modal-box max-w-md">
           <h3 className="font-semibold text-base mb-4">{t('settings.addAccountDialog')}</h3>
           <div className="space-y-4">
+            <button
+              className="btn btn-primary btn-sm w-full"
+              onClick={handleBrowserLogin}
+              disabled={loggingIn}
+            >
+              {loggingIn ? <span className="loading loading-spinner loading-xs" /> : t('settings.loginViaBrowser')}
+            </button>
+            {loggingIn && (
+              <p className="text-xs text-base-content/50 text-center">{t('settings.loginInProgress')}</p>
+            )}
+            {autoFilled && (
+              <p className="text-xs text-success text-center">{t('settings.loginAutoNote')}</p>
+            )}
+            <div className="divider text-xs text-base-content/40">{t('settings.manualOr')}</div>
             <div>
               <label className="text-xs text-base-content/60 mb-1.5 block">{t('settings.name')}</label>
               <input

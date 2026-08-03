@@ -21,6 +21,16 @@ export function TitleBar() {
     return api.onCloseDialogRequest(openCloseDialog);
   }, []);
 
+  useEffect(() => {
+    if (!api?.onMaximizedChange) return;
+    const unsubscribe = api.onMaximizedChange(setIsMaximized);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    win?.isMaximized().then(setIsMaximized).catch(() => {});
+  }, []);
+
   const handleMaximize = async () => {
     win?.maximize();
     if (win?.isMaximized) {

@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   restartBackend: () => ipcRenderer.invoke('restart-backend'),
+  loginOpenCode: () => ipcRenderer.invoke('opencode-login-start'),
   backendPid: () => ipcRenderer.invoke('backend-pid'),
   getTrayMode: () => ipcRenderer.invoke('get-tray-mode'),
   setTrayMode: (v: boolean) => ipcRenderer.invoke('set-tray-mode', v),
@@ -25,5 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = () => cb();
     ipcRenderer.on('close-dialog-request', listener);
     return () => ipcRenderer.removeListener('close-dialog-request', listener);
+  },
+  onMaximizedChange: (cb: (maximized: boolean) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, maximized: boolean) => cb(maximized);
+    ipcRenderer.on('window-maximized-changed', listener);
+    return () => ipcRenderer.removeListener('window-maximized-changed', listener);
   },
 });

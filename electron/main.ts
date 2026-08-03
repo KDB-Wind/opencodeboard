@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { startOpenCodeLogin } from './opencode-login';
 import {
   isBackendRunning,
   restartBackendServer,
@@ -165,6 +166,14 @@ function createWindow() {
     }
   });
 
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window-maximized-changed', true);
+  });
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window-maximized-changed', false);
+  });
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
   } else {
@@ -227,6 +236,10 @@ ipcMain.handle('restart-backend', async () => {
   });
   return true;
 });
+
+ipcMain.handle('opencode-login-start', () =>
+  startOpenCodeLogin({ parent: mainWindow }),
+);
 
 ipcMain.handle('backend-pid', () => {
   return isBackendRunning() ? process.pid : null;

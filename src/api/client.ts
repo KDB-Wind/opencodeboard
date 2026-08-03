@@ -102,7 +102,7 @@ export const api = {
       `/accounts/opencode/${id}/usage/backfill${pages ? `?pages=${pages}` : ''}`,
     ),
   syncProgress: (id: string) =>
-    get<{ status: string; current: number; total: number; inserted: number }>(
+    get<{ status: string; current: number; total: number; inserted: number; error?: string }>(
       `/accounts/opencode/${id}/usage/progress`,
     ),
 
