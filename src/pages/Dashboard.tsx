@@ -5,6 +5,7 @@ import { usePolling } from '../hooks/usePolling';
 import { api } from '../api/client';
 import { ModelIcon } from '../components/ModelIcon';
 import { UsageTable } from '../components/UsageTable';
+import { TokenBreakdownTooltip } from '../components/TokenBreakdownTooltip';
 import type { QuotaWindow } from '../api/types';
 
 function fmt(v: number) {
@@ -155,14 +156,25 @@ export function Dashboard() {
   const overview = data?.overview?.opencode;
   const quota = (data?.quota ?? []).filter((q) => q.success);
   const tokens = data?.model_tokens ?? [];
+  const tokenBreakdown = {
+    uncachedInput: tokens.reduce((s, m) => s + Number(m.uncached_input_tokens ?? m.total_input_tokens ?? 0), 0),
+    cacheHit: tokens.reduce((s, m) => s + Number(m.cache_hit_tokens ?? 0), 0),
+    cacheWrite: tokens.reduce((s, m) => s + Number(m.cache_write_tokens ?? 0), 0),
+    output: tokens.reduce((s, m) => s + m.total_output_tokens, 0),
+  };
 
   const hero = useMemo(() => {
     const tkn = tokens.reduce((s, m) => s + m.total_input_tokens + m.total_output_tokens, 0);
     const r = tokens.reduce((s, m) => s + m.request_count, 0);
     return [
-      { label: t('dashboard.account'), value: overview?.account_count ?? '-', sub: t('dashboard.availableBlocked', { available: overview?.success_count ?? 0, blocked: overview?.blocked_count ?? 0 }) },
-      { label: t('dashboard.remainingQuota'), value: overview ? `${overview.avg_effective_remaining}%` : '-', sub: t('dashboard.avgRemainingRatio') },
-      { label: t('dashboard.totalTokenConsumption'), value: fmt(tkn), sub: t('dashboard.requests', { count: r.toLocaleString() }) },
+      { label: t('dashboard.account'), value: overview?.account_count ?? '-', sub: t('dashboard.availableBlocked', { available: overview?.success_count ?? 0, blocked: overview?.blocked_count ?? 0 }), breakdown: null },
+      { label: t('dashboard.remainingQuota'), value: overview ? `${overview.avg_effective_remaining}%` : '-', sub: t('dashboard.avgRemainingRatio'), breakdown: null },
+      {
+        label: t('dashboard.totalTokenConsumption'),
+        value: fmt(tkn),
+        sub: t('dashboard.requests', { count: r.toLocaleString() }),
+        breakdown: tokenBreakdown,
+      },
     ];
   }, [overview, tokens, t, i18n.language]);
 
@@ -187,7 +199,13 @@ export function Dashboard() {
         {hero.map((h) => (
           <div key={h.label} className="border border-base-200 rounded-xl px-4 py-3">
             <div className="text-[11px] font-bold text-base-content/40 uppercase tracking-wider">{h.label}</div>
-            <div className="text-3xl font-bold mt-1">{h.value}</div>
+            {h.breakdown ? (
+              <TokenBreakdownTooltip {...h.breakdown}>
+                <div className="text-3xl font-bold mt-1">{h.value}</div>
+              </TokenBreakdownTooltip>
+            ) : (
+              <div className="text-3xl font-bold mt-1">{h.value}</div>
+            )}
             <div className="text-[11px] text-base-content/40 mt-0.5">{h.sub}</div>
           </div>
         ))}

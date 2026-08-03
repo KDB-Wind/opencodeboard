@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  platform: process.platform,
   versions: {
     node: process.versions.node,
     chrome: process.versions.chrome,
@@ -20,4 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTrayMode: () => ipcRenderer.invoke('get-tray-mode'),
   setTrayMode: (v: boolean) => ipcRenderer.invoke('set-tray-mode', v),
   closeConfirm: (action: string) => ipcRenderer.invoke('close-confirm', action),
+  onCloseDialogRequest: (cb: () => void) => {
+    const listener = () => cb();
+    ipcRenderer.on('close-dialog-request', listener);
+    return () => ipcRenderer.removeListener('close-dialog-request', listener);
+  },
 });

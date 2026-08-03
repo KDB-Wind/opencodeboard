@@ -6,8 +6,7 @@ export const USAGE_PAGE_SIZE = 50;
 const TIMEOUT_MS = 15000;
 const MAX_RESPONSE_BYTES = 4 << 20;
 
-const RECORD_RE =
-  /id:"(usg_[^"]+)"[^}]*?timeCreated:\$R\[\d+\]=new Date\("([^"]+)"\)[^}]*?model:"([^"]+)"[^}]*?provider:"([^"]+)"[^}]*?inputTokens:(\d+)[^}]*?outputTokens:(\d+)[^}]*?cost:([0-9]+)[^}]*?keyID:"([^"]+)"/gs;
+const RECORD_RE = /id:"(usg_[^"]+)"([\s\S]*?)(?=,\$R\[\d+\]=\{id:"usg_|$)/g;
 
 const PLAN_RE =
   /id:"(usg_[^"]+)"[^}]*?enrichment:\$R\[\d+\]=\{plan:"([^"]+)"\}/gs;
@@ -19,6 +18,9 @@ export interface ParsedUsageRecord {
   provider: string;
   input_tokens: number;
   output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_5m_tokens: number;
+  cache_write_1h_tokens: number;
   cost_raw: number;
   cost_usd: number;
   key_id: string;
@@ -33,6 +35,9 @@ export function toDbDict(r: ParsedUsageRecord): Record<string, unknown> {
     provider: r.provider,
     input_tokens: r.input_tokens,
     output_tokens: r.output_tokens,
+    cache_read_tokens: r.cache_read_tokens,
+    cache_write_5m_tokens: r.cache_write_5m_tokens,
+    cache_write_1h_tokens: r.cache_write_1h_tokens,
     cost_raw: r.cost_raw,
     cost_usd: r.cost_usd,
     key_id: r.key_id,
@@ -52,18 +57,26 @@ export function parseUsageResponse(text: string): ParsedUsageRecord[] {
   RECORD_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = RECORD_RE.exec(text)) !== null) {
-    const costInt = parseInt(m[7], 10);
+    const body = m[2];
+    const readString = (name: string) => body.match(new RegExp(`${name}:"([^"]+)"`))?.[1] ?? '';
+    const readNumber = (name: string) => body.match(new RegExp(`${name}:(\\d+|null)`))?.[1] ?? '0';
+    const createdAt = body.match(/timeCreated:\$R\[\d+\]=new Date\("([^"]+)"\)/)?.[1];
+    if (!createdAt) continue;
+    const costInt = parseInt(readNumber('cost'), 10);
     const usgId = m[1];
     records.push({
       usg_id: usgId,
-      created_at: m[2],
-      model: m[3],
-      provider: m[4],
-      input_tokens: parseInt(m[5], 10),
-      output_tokens: parseInt(m[6], 10),
+      created_at: createdAt,
+      model: readString('model'),
+      provider: readString('provider'),
+      input_tokens: parseInt(readNumber('inputTokens'), 10),
+      output_tokens: parseInt(readNumber('outputTokens'), 10),
+      cache_read_tokens: parseInt(readNumber('cacheReadTokens'), 10),
+      cache_write_5m_tokens: parseOptionalToken(readNumber('cacheWrite5mTokens')),
+      cache_write_1h_tokens: parseOptionalToken(readNumber('cacheWrite1hTokens')),
       cost_raw: costInt,
       cost_usd: costInt / 1_000_000_000,
-      key_id: m[8],
+      key_id: readString('keyID'),
       plan: plans.get(usgId) ?? null,
     });
   }
@@ -72,6 +85,10 @@ export function parseUsageResponse(text: string): ParsedUsageRecord[] {
 
 function usageServerId(): string {
   return loadServiceConfig().opencode.usage_server_id || DEFAULT_USAGE_SERVER_ID;
+}
+
+function parseOptionalToken(value: string): number {
+  return value === 'null' ? 0 : parseInt(value, 10);
 }
 
 async function fetchWithTimeout(

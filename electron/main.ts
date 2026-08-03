@@ -16,6 +16,7 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let trayMode = false;
 let trayConfigured = false;
+let closeAllowed = false;
 
 const BACKEND_PORT = 8788;
 const BACKEND_HOST = '127.0.0.1';
@@ -83,6 +84,11 @@ function createTray() {
   } catch {
     icon = nativeImage.createEmpty();
   }
+  if (process.platform === 'darwin') {
+    icon = icon.resize({ width: 16, height: 16 });
+  } else {
+    icon = icon.resize({ width: 32, height: 32 });
+  }
   tray = new Tray(icon);
   tray.setToolTip('68HUB');
 
@@ -119,11 +125,14 @@ function destroyTray() {
 }
 
 function createWindow() {
+  const isWindows = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
+
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 720,
-    frame: false,
-    titleBarStyle: 'hidden',
+    frame: !isWindows,
+    titleBarStyle: isWindows ? 'hidden' : isMac ? 'hiddenInset' : 'default',
     icon: path.join(__dirname, isDev ? '../favicon.ico' : '../dist/favicon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -141,9 +150,18 @@ function createWindow() {
   });
 
   mainWindow.on('close', (event) => {
+    if (closeAllowed) {
+      closeAllowed = false;
+      return;
+    }
     if (trayMode) {
       event.preventDefault();
       mainWindow?.hide();
+      return;
+    }
+    if (!trayConfigured) {
+      event.preventDefault();
+      mainWindow?.webContents.send('close-dialog-request');
     }
   });
 
@@ -173,6 +191,7 @@ ipcMain.handle('window-close', async () => {
   if (!trayConfigured) {
     return 'ask';
   }
+  closeAllowed = true;
   mainWindow?.close();
   return 'quit';
 });
@@ -185,7 +204,12 @@ ipcMain.handle('close-confirm', async (_event, action: string) => {
     return 'hide';
   }
   saveTrayPreference(false, true);
-  mainWindow?.close();
+  closeAllowed = true;
+  if (process.platform === 'darwin') {
+    app.quit();
+  } else {
+    mainWindow?.close();
+  }
   return 'quit';
 });
 

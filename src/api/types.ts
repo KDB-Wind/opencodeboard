@@ -98,6 +98,9 @@ export interface ModelTokenStat {
   model: string;
   request_count: number;
   total_input_tokens: number;
+  uncached_input_tokens: number;
+  cache_hit_tokens: number;
+  cache_write_tokens: number;
   total_output_tokens: number;
   total_cost_usd: number;
 }
@@ -111,6 +114,9 @@ export interface UsageRecord {
   provider: string | null;
   input_tokens: number;
   output_tokens: number;
+  uncached_input_tokens?: number;
+  cache_read_tokens?: number;
+  cache_write_tokens?: number;
   cost_usd: number;
   key_id: string | null;
   plan: string | null;

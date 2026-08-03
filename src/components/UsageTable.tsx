@@ -1,3 +1,5 @@
+import { useState, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { UsageRecord } from '../api/types';
 import { ModelIcon } from './ModelIcon';
@@ -16,8 +18,51 @@ function displayPlan(p: string | null) {
   return planMap[p] || p;
 }
 
+function CacheBreakdown({ record, rect }: { record: UsageRecord; rect: DOMRect }) {
+  const { t } = useTranslation();
+  const uncached = record.uncached_input_tokens ?? record.input_tokens ?? 0;
+  const cacheHit = record.cache_read_tokens ?? 0;
+  const cacheWrite = record.cache_write_tokens ?? 0;
+  const totalInput = record.input_tokens ?? uncached + cacheHit + cacheWrite;
+  const output = record.output_tokens ?? 0;
+  const hitRate = totalInput > 0 ? ((cacheHit / totalInput) * 100).toFixed(1) : '0.0';
+  const format = (v: number) => v.toLocaleString();
+
+  return createPortal(
+    <div
+      className="fixed z-50 w-56 rounded-lg border border-base-300 bg-base-100 p-3 text-xs shadow-lg pointer-events-none"
+      style={{ left: Math.min(rect.left, window.innerWidth - 224), top: rect.bottom + 8 }}
+    >
+      <div className="font-semibold mb-2">{t('tokenStats.breakdownTitle')}</div>
+      <div className="flex justify-between gap-4 py-0.5">
+        <span className="text-base-content/60">{t('tokenStats.uncachedInput')}</span>
+        <span className="tabular-nums">{format(uncached)}</span>
+      </div>
+      <div className="flex justify-between gap-4 py-0.5">
+        <span className="text-base-content/60">{t('tokenStats.cacheHit')}</span>
+        <span className="tabular-nums">{format(cacheHit)}</span>
+      </div>
+      <div className="flex justify-between gap-4 py-0.5">
+        <span className="text-base-content/60">{t('tokenStats.cacheWrite')}</span>
+        <span className="tabular-nums">{format(cacheWrite)}</span>
+      </div>
+      <div className="flex justify-between gap-4 border-t border-base-200 mt-1 pt-1">
+        <span className="text-base-content/60">{t('tokenStats.totalInput')}</span>
+        <span className="tabular-nums">{format(totalInput)}</span>
+      </div>
+      <div className="flex justify-between gap-4 py-0.5">
+        <span className="text-base-content/60">{t('tokenStats.output')}</span>
+        <span className="tabular-nums">{format(output)}</span>
+      </div>
+      <div className="text-base-content/40 mt-1">{t('tokenStats.cacheHitRate', { rate: hitRate })}</div>
+    </div>,
+    document.body,
+  );
+}
+
 export function UsageTable({ records, showAccount }: UsageTableProps) {
   const { t, i18n } = useTranslation();
+  const [hover, setHover] = useState<{ record: UsageRecord; rect: DOMRect } | null>(null);
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);
@@ -28,6 +73,10 @@ export function UsageTable({ records, showAccount }: UsageTableProps) {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const showBreakdown = (record: UsageRecord) => (e: MouseEvent<HTMLTableCellElement>) => {
+    setHover({ record, rect: e.currentTarget.getBoundingClientRect() });
   };
 
   return (
@@ -64,7 +113,13 @@ export function UsageTable({ records, showAccount }: UsageTableProps) {
                     <span className="truncate">{r.model}</span>
                   </div>
                 </td>
-                <td className="text-right text-sm tabular-nums">{r.input_tokens.toLocaleString()}</td>
+                <td
+                  className="text-right text-sm tabular-nums cursor-help"
+                  onMouseEnter={showBreakdown(r)}
+                  onMouseLeave={() => setHover(null)}
+                >
+                  {r.input_tokens.toLocaleString()}
+                </td>
                 <td className="text-right text-sm tabular-nums">{r.output_tokens.toLocaleString()}</td>
                 <td className="text-right text-sm tabular-nums">${r.cost_usd.toFixed(6)}</td>
                 <td className="text-xs">
@@ -75,6 +130,8 @@ export function UsageTable({ records, showAccount }: UsageTableProps) {
           )}
         </tbody>
       </table>
+
+      {hover && <CacheBreakdown record={hover.record} rect={hover.rect} />}
     </div>
   );
 }

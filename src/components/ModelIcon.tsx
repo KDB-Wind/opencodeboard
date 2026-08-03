@@ -1,3 +1,5 @@
+import { OpenAIIcon } from './OpenAIIcon';
+
 const map: [RegExp, string][] = [
   [/qwen/i, 'qwen'],
   [/deepseek/i, 'deepseek'],
@@ -26,6 +28,10 @@ function matchIcon(model: string): string | null {
 export function ModelIcon({ model, className = 'w-4 h-4' }: { model: string; className?: string }) {
   const slug = matchIcon(model);
   if (!slug) return null;
+
+  if (slug === 'openai') {
+    return <OpenAIIcon className={className} />;
+  }
 
   if (slug.startsWith('__fallback__')) {
     const domain = slug.replace('__fallback__', '');

@@ -1,39 +1,25 @@
 # 68HUB Changelog
 
-## v1.1.1
+## v1.1.2
 
-### 更新内容 | What's New
+- **新增 macOS Intel (x64) 安装包**：GitHub Actions 自动构建 mac-x64 与 mac-arm64 DMG
+  Added macOS Intel (x64) installer: builds both mac-x64 and mac-arm64 DMGs
+- **OpenAI 模型图标改为本地内联 SVG**：不再依赖外部 CDN
+  OpenAI model icons now bundled locally, no external CDN
+- **修正输入 Token 统计**：输入包含缓存命中与缓存写入，与网页用量一致
+  Fixed input token stats to include cache hit/write, matching the web
+- **Token 明细悬浮窗**：首页总 Token 与统计页输入卡片悬浮查看明细与命中率
+  Token breakdown tooltip on Dashboard and Token Stats
+- **记录级缓存明细**：使用记录表格中悬浮每条记录的输入数值，即可查看该条的缓存命中与写入明细
+  Per-record cache breakdown: hover any input token in the usage table to see cache hit/write details
+- **用量解析与同步增强**：按字段名解析，同步自动更新已有记录
+  Field-based parsing; sync updates existing records
 
-- 🌐 **中英双语支持**：可在设置中切换中文/English，默认为跟随系统语言
-  Bilingual UI: Switch between Chinese and English in Settings, defaults to system language
-- 后端从 Python (FastAPI + PyInstaller) 迁移至 Node.js (Hono + better-sqlite3)，内嵌于 Electron 主进程
-  Backend migrated from Python (FastAPI + PyInstaller) to Node.js (Hono + better-sqlite3), embedded in Electron main process
-- 单进程单安装包，告别双进程打包
-  Single-process single installer,告别 dual-process packaging
-- **暗色模式**：支持浅色/深色/跟随系统三种主题（Forest 暗色主题）
-  Dark mode: Light / Dark / System themes (Forest dark theme)
-- **系统托盘**：关闭窗口时可最小化到托盘，后台继续同步
-  System tray: Minimize to tray on close, sync continues in background
-- **首次启动引导**：选择主题偏好与托盘行为
-  First-run onboarding: Choose theme and tray behavior
-- 设置页新增恢复默认设置按钮
-  Settings page: Added "Reset to Defaults" button
-- 支持 Grok 模型图标显示
-  Grok model icon support
-- 关闭弹窗改为应用内 Modal，与主题风格一致
-  Close dialog replaced with in-app Modal, consistent with theme
-- 修复与优化详见提交记录
-  Bug fixes and optimizations — see commit history
+## macOS 优化 | macOS
 
-### 功能 | Features
-
-- 📊 **用量统计总览**：账户配额、Token 消耗一目了然
-  Usage dashboard: Account quotas and token consumption at a glance
-- 📈 **各模型 Token 消耗排行与每日趋势**
-  Model token consumption ranking and daily trends
-- 📅 **每日费用与请求量趋势分析**
-  Daily cost and request volume trend analysis
-- 📋 **完整使用记录查询与筛选**
-  Complete usage record query and filtering
-- ⚙️ **多账户管理与自动同步**
-  Multi-account management and auto-sync
+- 使用原生标题栏与交通灯按钮，自定义按钮仅保留在 Windows；品牌文字移至右上角
+  Native title bar and traffic lights; custom buttons are Windows-only; brand moves to top-right
+- 原生关闭按钮支持最小化到托盘，确认退出时真正退出
+  Native close button supports minimize-to-tray and real quit
+- 菜单栏图标改为 16x16 彩色小图标
+  Menu bar icon is now a 16x16 colored icon

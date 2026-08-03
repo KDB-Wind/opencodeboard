@@ -38,6 +38,9 @@ export interface UsageRecordRow {
   provider: string | null;
   input_tokens: number;
   output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_5m_tokens: number;
+  cache_write_1h_tokens: number;
   cost_raw: number;
   cost_usd: number;
   key_id: string | null;
@@ -114,6 +117,9 @@ function mapUsage(row: Record<string, unknown>): UsageRecordRow {
     provider: row.provider != null ? String(row.provider) : null,
     input_tokens: Number(row.input_tokens),
     output_tokens: Number(row.output_tokens),
+    cache_read_tokens: Number(row.cache_read_tokens || 0),
+    cache_write_5m_tokens: Number(row.cache_write_5m_tokens || 0),
+    cache_write_1h_tokens: Number(row.cache_write_1h_tokens || 0),
     cost_raw: Number(row.cost_raw),
     cost_usd: Number(row.cost_usd),
     key_id: row.key_id != null ? String(row.key_id) : null,
@@ -175,6 +181,9 @@ export function initDb(): void {
       provider TEXT,
       input_tokens INTEGER NOT NULL,
       output_tokens INTEGER NOT NULL,
+      cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+      cache_write_5m_tokens INTEGER NOT NULL DEFAULT 0,
+      cache_write_1h_tokens INTEGER NOT NULL DEFAULT 0,
       cost_raw INTEGER NOT NULL,
       cost_usd REAL NOT NULL,
       key_id TEXT,
@@ -205,17 +214,30 @@ export function initDb(): void {
       updated_at TEXT NOT NULL
     );
   `);
+
+  const columns = new Set(
+    (conn.pragma('table_info(usage_records)') as Array<{ name: string }>).map((column) => column.name),
+  );
+  for (const column of ['cache_read_tokens', 'cache_write_5m_tokens', 'cache_write_1h_tokens']) {
+    if (!columns.has(column)) {
+      conn.exec(`ALTER TABLE usage_records ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`);
+    }
+  }
 }
 
 export function usageRecordToDict(r: UsageRecordRow): Record<string, unknown> {
+  const cacheWriteTokens = r.cache_write_5m_tokens + r.cache_write_1h_tokens;
   return {
     usg_id: r.usg_id,
     account_id: r.account_id,
     created_at: r.created_at,
     model: r.model,
     provider: r.provider,
-    input_tokens: r.input_tokens,
+    input_tokens: r.input_tokens + r.cache_read_tokens + cacheWriteTokens,
     output_tokens: r.output_tokens,
+    uncached_input_tokens: r.input_tokens,
+    cache_read_tokens: r.cache_read_tokens,
+    cache_write_tokens: cacheWriteTokens,
     cost_usd: r.cost_usd,
     key_id: r.key_id,
     plan: r.plan,
@@ -417,14 +439,26 @@ export function insertUsageRecordsIgnore(
   if (!records.length) return 0;
   const syncedAt = nowIso();
   const stmt = getDb().prepare(
-    `INSERT OR IGNORE INTO usage_records (
+    `INSERT INTO usage_records (
       usg_id, account_id, workspace_id, created_at, model, provider,
-      input_tokens, output_tokens, cost_raw, cost_usd, key_id, plan, synced_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      input_tokens, output_tokens, cache_read_tokens, cache_write_5m_tokens,
+      cache_write_1h_tokens, cost_raw, cost_usd, key_id, plan, synced_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(usg_id) DO UPDATE SET
+      input_tokens = excluded.input_tokens,
+      output_tokens = excluded.output_tokens,
+      cache_read_tokens = excluded.cache_read_tokens,
+      cache_write_5m_tokens = excluded.cache_write_5m_tokens,
+      cache_write_1h_tokens = excluded.cache_write_1h_tokens,
+      cost_raw = excluded.cost_raw,
+      cost_usd = excluded.cost_usd,
+      synced_at = excluded.synced_at`,
   );
+  const existingStmt = getDb().prepare('SELECT 1 FROM usage_records WHERE usg_id = ?');
   let inserted = 0;
   const tx = getDb().transaction(() => {
     for (const rec of records) {
+      const existed = existingStmt.get(rec.usg_id) != null;
       const result = stmt.run(
         rec.usg_id,
         accountId,
@@ -434,13 +468,16 @@ export function insertUsageRecordsIgnore(
         rec.provider ?? null,
         rec.input_tokens,
         rec.output_tokens,
+        rec.cache_read_tokens ?? 0,
+        rec.cache_write_5m_tokens ?? 0,
+        rec.cache_write_1h_tokens ?? 0,
         rec.cost_raw,
         rec.cost_usd,
         rec.key_id ?? null,
         rec.plan ?? null,
         syncedAt,
       );
-      inserted += result.changes;
+      if (!existed) inserted += result.changes;
     }
   });
   tx();
@@ -712,7 +749,10 @@ export function opencodeModelTokenStats(
     .prepare(
       `SELECT model,
               COUNT(*) AS request_count,
-              SUM(input_tokens) AS total_input_tokens,
+              SUM(input_tokens + cache_read_tokens + cache_write_5m_tokens + cache_write_1h_tokens) AS total_input_tokens,
+              SUM(input_tokens) AS uncached_input_tokens,
+              SUM(cache_read_tokens) AS cache_hit_tokens,
+              SUM(cache_write_5m_tokens + cache_write_1h_tokens) AS cache_write_tokens,
               SUM(output_tokens) AS total_output_tokens,
               SUM(cost_usd) AS total_cost_usd
        FROM usage_records
@@ -725,6 +765,9 @@ export function opencodeModelTokenStats(
     model: r.model,
     request_count: Number(r.request_count),
     total_input_tokens: Number(r.total_input_tokens || 0),
+    uncached_input_tokens: Number(r.uncached_input_tokens || 0),
+    cache_hit_tokens: Number(r.cache_hit_tokens || 0),
+    cache_write_tokens: Number(r.cache_write_tokens || 0),
     total_output_tokens: Number(r.total_output_tokens || 0),
     total_cost_usd: Math.round(Number(r.total_cost_usd || 0) * 1e6) / 1e6,
   }));

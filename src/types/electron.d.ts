@@ -1,4 +1,5 @@
 export type ElectronAPI = {
+  platform: string;
   versions: {
     node: string;
     chrome: string;
@@ -18,6 +19,7 @@ export type ElectronAPI = {
   getTrayMode: () => Promise<boolean>;
   setTrayMode: (v: boolean) => Promise<boolean>;
   closeConfirm: (action: string) => Promise<string>;
+  onCloseDialogRequest: (cb: () => void) => () => void;
 };
 
 declare global {

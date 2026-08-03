@@ -6,6 +6,7 @@ import type { ModelTokenStat, OpenCodeAccount } from '../api/types';
 import { ModelIcon } from '../components/ModelIcon';
 import { ModelRankChart } from '../components/ModelRankChart';
 import { DailyModelChart } from '../components/DailyModelChart';
+import { TokenBreakdownTooltip } from '../components/TokenBreakdownTooltip';
 
 export function TokenStats() {
   const { t } = useTranslation();
@@ -35,6 +36,9 @@ export function TokenStats() {
   const totalOutput = stats.reduce((s, m) => s + m.total_output_tokens, 0);
   const totalCost = stats.reduce((s, m) => s + m.total_cost_usd, 0);
   const totalRequests = stats.reduce((s, m) => s + m.request_count, 0);
+  const uncachedInput = stats.reduce((s, m) => s + Number(m.uncached_input_tokens ?? m.total_input_tokens ?? 0), 0);
+  const cacheHit = stats.reduce((s, m) => s + Number(m.cache_hit_tokens ?? 0), 0);
+  const cacheWrite = stats.reduce((s, m) => s + Number(m.cache_write_tokens ?? 0), 0);
 
   const formatTokens = (v: number) => {
     if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M';
@@ -76,13 +80,28 @@ export function TokenStats() {
       <div className="flex gap-4 text-sm">
         {[
           { label: t('tokenStats.totalRequests'), value: totalRequests.toLocaleString() },
-          { label: t('tokenStats.input'), value: formatTokens(totalInput) },
+          {
+            label: t('tokenStats.input'),
+            value: formatTokens(totalInput),
+            breakdown: true,
+          },
           { label: t('tokenStats.output'), value: formatTokens(totalOutput) },
           { label: t('tokenStats.totalCost'), value: `$${totalCost.toFixed(4)}` },
         ].map((item) => (
           <div key={item.label} className="border border-base-200 rounded-lg px-4 py-2.5 flex-1">
             <div className="text-[11px] font-bold text-base-content/40 uppercase">{item.label}</div>
-            <div className="text-lg font-bold mt-0.5">{item.value}</div>
+            {item.breakdown ? (
+              <TokenBreakdownTooltip
+                uncachedInput={uncachedInput}
+                cacheHit={cacheHit}
+                cacheWrite={cacheWrite}
+                output={totalOutput}
+              >
+                <div className="text-lg font-bold mt-0.5">{item.value}</div>
+              </TokenBreakdownTooltip>
+            ) : (
+              <div className="text-lg font-bold mt-0.5">{item.value}</div>
+            )}
           </div>
         ))}
       </div>
