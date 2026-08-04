@@ -1,36 +1,57 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePolling } from '../hooks/usePolling';
 import { api } from '../api/client';
 import type { ModelTokenStat, OpenCodeAccount } from '../api/types';
 import { ModelIcon } from '../components/ModelIcon';
 import { ModelRankChart } from '../components/ModelRankChart';
-import { DailyModelChart } from '../components/DailyModelChart';
 import { TokenBreakdownTooltip } from '../components/TokenBreakdownTooltip';
+import { DailyChart } from '../components/DailyChart';
+import { getStoredTimeRange, storeTimeRange, TimeRangeTabs, type TimeRange } from '../components/TimeRangeTabs';
+
+const PERIOD_MAP: Record<TimeRange, string> = {
+  today: 'today',
+  '7d': '7d',
+  '30d': '30d',
+  all: 'all',
+};
+
+const TREND_DAYS: Record<TimeRange, number> = {
+  today: 0,
+  '7d': 7,
+  '30d': 30,
+  all: 365,
+};
 
 export function TokenStats() {
   const { t } = useTranslation();
-  const [days, setDays] = useState(30);
+  const [range, setRange] = useState<TimeRange>(getStoredTimeRange);
   const [accountId, setAccountId] = useState('');
-  const [tab, setTab] = useState<'ranking' | 'daily'>('ranking');
+  const [mode, setMode] = useState<'cost' | 'requests'>('cost');
+
+  useEffect(() => {
+    storeTimeRange(range);
+  }, [range]);
 
   const { data: accounts } = usePolling(() => api.listOpenCodeAccounts(), 120000);
 
   const aid = accountId || undefined;
   const { data: modelTokens } = usePolling(
-    () => api.getModelTokenStats(days, aid),
+    () => api.getModelTokenStats(1, aid, PERIOD_MAP[range]),
     60000,
-    tab === 'ranking',
+    true,
+    [range, aid],
   );
 
-  const { data: dailyModels } = usePolling(
-    () => api.getDailyModelStats(days, aid),
+  const { data: trendData } = usePolling(
+    () => api.getDailyStats(TREND_DAYS[range], aid),
     60000,
-    tab === 'daily',
+    range !== 'today',
+    [range, aid],
   );
 
   const stats = modelTokens?.stats ?? [];
-  const dailyStats = dailyModels?.stats ?? [];
+  const trendStats = trendData?.stats ?? [];
 
   const totalInput = stats.reduce((s, m) => s + m.total_input_tokens, 0);
   const totalOutput = stats.reduce((s, m) => s + m.total_output_tokens, 0);
@@ -39,6 +60,9 @@ export function TokenStats() {
   const uncachedInput = stats.reduce((s, m) => s + Number(m.uncached_input_tokens ?? m.total_input_tokens ?? 0), 0);
   const cacheHit = stats.reduce((s, m) => s + Number(m.cache_hit_tokens ?? 0), 0);
   const cacheWrite = stats.reduce((s, m) => s + Number(m.cache_write_tokens ?? 0), 0);
+  const cacheHitRate = uncachedInput + cacheHit + cacheWrite > 0
+    ? ((cacheHit / (uncachedInput + cacheHit + cacheWrite)) * 100).toFixed(1)
+    : '0.0';
 
   const formatTokens = (v: number) => {
     if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M';
@@ -64,39 +88,30 @@ export function TokenStats() {
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
-          <select
-            className="select select-bordered select-sm w-24"
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-          >
-            <option value={7}>{t('timeRange.7days')}</option>
-            <option value={14}>{t('timeRange.14days')}</option>
-            <option value={30}>{t('timeRange.30days')}</option>
-            <option value={90}>{t('timeRange.90days')}</option>
-          </select>
+          <TimeRangeTabs value={range} onChange={setRange} />
         </div>
       </div>
 
-      <div className="flex gap-4 text-sm">
+      <div className="grid grid-cols-4 gap-4 text-sm">
         {[
           { label: t('tokenStats.totalRequests'), value: totalRequests.toLocaleString() },
           {
-            label: t('tokenStats.input'),
-            value: formatTokens(totalInput),
-            breakdown: true,
+            label: t('common.totalTokens'),
+            value: formatTokens(totalInput + totalOutput),
+            breakdown: {
+              uncachedInput,
+              cacheHit,
+              cacheWrite,
+              output: totalOutput,
+            },
           },
-          { label: t('tokenStats.output'), value: formatTokens(totalOutput) },
           { label: t('tokenStats.totalCost'), value: `$${totalCost.toFixed(4)}` },
+          { label: t('tokenStats.cacheHitRateLabel'), value: `${cacheHitRate}%` },
         ].map((item) => (
           <div key={item.label} className="border border-base-200 rounded-lg px-4 py-2.5 flex-1">
             <div className="text-[11px] font-bold text-base-content/40 uppercase">{item.label}</div>
             {item.breakdown ? (
-              <TokenBreakdownTooltip
-                uncachedInput={uncachedInput}
-                cacheHit={cacheHit}
-                cacheWrite={cacheWrite}
-                output={totalOutput}
-              >
+              <TokenBreakdownTooltip {...item.breakdown}>
                 <div className="text-lg font-bold mt-0.5">{item.value}</div>
               </TokenBreakdownTooltip>
             ) : (
@@ -106,81 +121,103 @@ export function TokenStats() {
         ))}
       </div>
 
-      <div className="tabs tabs-box bg-base-200 p-1">
-        <button
-          className={`tab tab-sm ${tab === 'ranking' ? 'tab-active' : ''}`}
-          onClick={() => setTab('ranking')}
-        >
-          {t('tokenStats.modelRanking')}
-        </button>
-        <button
-          className={`tab tab-sm ${tab === 'daily' ? 'tab-active' : ''}`}
-          onClick={() => setTab('daily')}
-        >
-          {t('tokenStats.dailyTrends')}
-        </button>
+      <div className="border border-base-200 rounded-xl overflow-hidden">
+        <div className="p-4">
+          <h3 className="text-xs font-bold text-base-content/50 uppercase mb-2">{t('tokenStats.modelUsage')}</h3>
+          {stats.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-base-content/40 text-sm">
+              {t('common.noData')}
+            </div>
+          ) : (
+            <ModelRankChart data={stats} />
+          )}
+        </div>
       </div>
 
-      {tab === 'ranking' && (
+      <div className="border border-base-200 rounded-xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="table table-sm">
+            <thead>
+              <tr className="text-base-content/40 text-xs uppercase tracking-wider">
+                <th>{t('tokenStats.tableModel')}</th>
+                <th className="text-right">{t('tokenStats.tableRequests')}</th>
+                <th className="text-right">{t('tokenStats.tableInput')}</th>
+                <th className="text-right">{t('tokenStats.tableOutput')}</th>
+                <th className="text-right">{t('tokenStats.tableTotalTokens')}</th>
+                <th className="text-right">{t('tokenStats.tableCost')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-base-content/40 text-sm">
+                    {t('common.noData')}
+                  </td>
+                </tr>
+              ) : (
+                stats.map((m: ModelTokenStat) => (
+                  <tr key={m.model} className="hover">
+                    <td className="text-sm font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <ModelIcon model={m.model} />
+                        <span>{m.model}</span>
+                      </div>
+                    </td>
+                    <td className="text-right text-sm tabular-nums">{m.request_count.toLocaleString()}</td>
+                    <td className="text-right text-sm tabular-nums">{m.total_input_tokens.toLocaleString()}</td>
+                    <td className="text-right text-sm tabular-nums">{m.total_output_tokens.toLocaleString()}</td>
+                    <td className="text-right text-sm tabular-nums">
+                      {(m.total_input_tokens + m.total_output_tokens).toLocaleString()}
+                    </td>
+                    <td className="text-right text-sm tabular-nums">${m.total_cost_usd.toFixed(6)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {range !== 'today' && (
         <>
-          <div className="border border-base-200 rounded-xl overflow-hidden">
-            <div className="p-4">
-              <h3 className="text-xs font-bold text-base-content/50 uppercase mb-2">{t('tokenStats.modelUsage')}</h3>
-              <ModelRankChart data={stats} />
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-base-content/50 uppercase">{t('tokenStats.trendTitle')}</h3>
+            <div className="tabs tabs-box bg-base-200 p-1">
+              <button
+                type="button"
+                aria-pressed={mode === 'cost'}
+                className={`rounded-md font-medium transition-colors whitespace-nowrap px-2 py-0.5 text-[11px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 ${mode === 'cost'
+                  ? 'bg-primary text-primary-content shadow-sm'
+                  : 'text-base-content/60 hover:bg-base-100/70 hover:text-base-content'}`}
+                onClick={() => setMode('cost')}
+              >
+                {t('tokenStats.trendCost')}
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === 'requests'}
+                className={`rounded-md font-medium transition-colors whitespace-nowrap px-2 py-0.5 text-[11px] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-base-200 ${mode === 'requests'
+                  ? 'bg-primary text-primary-content shadow-sm'
+                  : 'text-base-content/60 hover:bg-base-100/70 hover:text-base-content'}`}
+                onClick={() => setMode('requests')}
+              >
+                {t('tokenStats.trendRequests')}
+              </button>
             </div>
           </div>
 
           <div className="border border-base-200 rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="table table-sm">
-                <thead>
-                  <tr className="text-base-content/40 text-xs uppercase tracking-wider">
-                    <th>{t('tokenStats.tableModel')}</th>
-                    <th className="text-right">{t('tokenStats.tableRequests')}</th>
-                    <th className="text-right">{t('tokenStats.tableInput')}</th>
-                    <th className="text-right">{t('tokenStats.tableOutput')}</th>
-                    <th className="text-right">{t('tokenStats.tableTotalTokens')}</th>
-                    <th className="text-right">{t('tokenStats.tableCost')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="text-center py-8 text-base-content/40 text-sm">
-                        {t('common.noData')}
-                      </td>
-                    </tr>
-                  ) : (
-                    stats.map((m: ModelTokenStat) => (
-                      <tr key={m.model} className="hover">
-                        <td className="text-sm font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <ModelIcon model={m.model} />
-                            <span>{m.model}</span>
-                          </div>
-                        </td>
-                        <td className="text-right text-sm tabular-nums">{m.request_count.toLocaleString()}</td>
-                        <td className="text-right text-sm tabular-nums">{m.total_input_tokens.toLocaleString()}</td>
-                        <td className="text-right text-sm tabular-nums">{m.total_output_tokens.toLocaleString()}</td>
-                        <td className="text-right text-sm tabular-nums">
-                          {(m.total_input_tokens + m.total_output_tokens).toLocaleString()}
-                        </td>
-                        <td className="text-right text-sm tabular-nums">${m.total_cost_usd.toFixed(6)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            <div className="p-4">
+              {trendStats.length === 0 ? (
+                <div className="flex items-center justify-center h-48 text-base-content/40 text-sm">
+                  {t('common.noData')}
+                </div>
+              ) : (
+                <DailyChart data={trendStats} mode={mode} />
+              )}
             </div>
           </div>
         </>
-      )}
-
-      {tab === 'daily' && (
-        <div className="border border-base-200 rounded-xl p-4">
-          <h3 className="text-xs font-bold text-base-content/50 uppercase mb-2">{t('tokenStats.modelDailyTrends')}</h3>
-          <DailyModelChart data={dailyStats} mode="cost" />
-        </div>
       )}
     </div>
   );

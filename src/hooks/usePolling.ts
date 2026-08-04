@@ -4,6 +4,7 @@ export function usePolling<T>(
   fetcher: () => Promise<T>,
   intervalMs: number,
   enabled = true,
+  deps: unknown[] = [],
 ) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -56,7 +57,7 @@ export function usePolling<T>(
       if (intervalRef.current) clearInterval(intervalRef.current);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [intervalMs, enabled, fetchData]);
+  }, [intervalMs, enabled, fetchData, ...deps]);
 
   return { data, error, loading, refetch: fetchData };
 }

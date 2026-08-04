@@ -21,6 +21,7 @@ let closeAllowed = false;
 
 const BACKEND_PORT = 8788;
 const BACKEND_HOST = '127.0.0.1';
+let backendPort = BACKEND_PORT;
 
 function trayConfigPath(): string {
   return path.join(app.getPath('userData'), 'tray.json');
@@ -55,11 +56,12 @@ function backendDataDir(): string {
 
 async function startBackend() {
   try {
-    await startBackendServer({
+    const result = await startBackendServer({
       host: BACKEND_HOST,
       port: BACKEND_PORT,
       dataDir: backendDataDir(),
     });
+    backendPort = result.port;
   } catch (err) {
     console.error('[backend] failed to start:', err);
   }
@@ -183,6 +185,9 @@ function createWindow() {
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-app-name', () => app.getName());
+ipcMain.on('get-backend-port', (event) => {
+  event.returnValue = backendPort;
+});
 
 ipcMain.on('window-minimize', () => mainWindow?.minimize());
 ipcMain.on('window-maximize', () => {
@@ -229,11 +234,12 @@ ipcMain.handle('open-external', (_event, url: string) => {
 });
 
 ipcMain.handle('restart-backend', async () => {
-  await restartBackendServer({
+  const result = await restartBackendServer({
     host: BACKEND_HOST,
     port: BACKEND_PORT,
     dataDir: backendDataDir(),
   });
+  backendPort = result.port;
   return true;
 });
 

@@ -431,7 +431,7 @@ export function createApp(opts: { onConfigUpdated?: RestartSyncFn } = {}): Hono 
 
   app.get('/api/dashboard', async (c) => {
     const period = c.req.query('period') || '30d';
-    if (!/^(5h|7d|30d)$/.test(period)) {
+    if (!/^(5h|today|all|\d+d)$/.test(period)) {
       return c.json({ detail: 'invalid period' }, 400);
     }
     const [overview, quota] = await Promise.all([buildOverview(), fetchQuotaForDashboard()]);
@@ -473,10 +473,10 @@ export function createApp(opts: { onConfigUpdated?: RestartSyncFn } = {}): Hono 
     const days = Math.max(1, Math.min(Number(c.req.query('days') || 30), 365));
     const accountId = c.req.query('account_id') || undefined;
     const period = c.req.query('period');
-    if (period && /^(5h|7d|30d)$/.test(period)) {
+    if (period && /^(5h|today|all|\d+d)$/.test(period)) {
       return c.json({ days, stats: db.opencodeModelTokenStats(period, accountId) });
     }
-    return c.json({ days, stats: db.opencodeModelTokenStats('30d', accountId) });
+    return c.json({ days, stats: db.opencodeModelTokenStats(`${days}d`, accountId) });
   });
 
   app.get('/api/usage/all', (c) => {

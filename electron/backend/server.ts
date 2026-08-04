@@ -103,19 +103,32 @@ export async function startBackendServer(opts: BackendOptions = {}): Promise<{
   const app = createApp({ onConfigUpdated: restartUsageSyncTask });
   const listener = getRequestListener(app.fetch);
 
-  server = createServer(listener);
-
-  await new Promise<void>((resolve, reject) => {
-    server!.once('error', reject);
-    server!.listen(port, host, () => {
-      server!.off('error', reject);
-      resolve();
-    });
-  });
+  let actualPort = port;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const candidate = port + attempt;
+    const candidateServer = createServer(listener);
+    try {
+      await new Promise<void>((resolve, reject) => {
+        candidateServer.once('error', reject);
+        candidateServer.listen(candidate, host, () => {
+          candidateServer.off('error', reject);
+          resolve();
+        });
+      });
+      server = candidateServer;
+      actualPort = candidate;
+      break;
+    } catch (error) {
+      candidateServer.close();
+      if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE' || attempt === 19) {
+        throw error;
+      }
+    }
+  }
 
   restartUsageSyncTask();
-  console.log(`[backend] listening on http://${host}:${port}`);
-  return { host, port };
+  console.log(`[backend] listening on http://${host}:${actualPort}`);
+  return { host, port: actualPort };
 }
 
 export async function stopBackendServer(): Promise<void> {
@@ -136,10 +149,9 @@ export async function stopBackendServer(): Promise<void> {
   console.log('[backend] stopped');
 }
 
-export async function restartBackendServer(opts: BackendOptions = {}): Promise<boolean> {
+export async function restartBackendServer(opts: BackendOptions = {}): Promise<{ host: string; port: number }> {
   await stopBackendServer();
-  await startBackendServer(opts);
-  return true;
+  return startBackendServer(opts);
 }
 
 export function isBackendRunning(): boolean {

@@ -10,7 +10,10 @@ import type {
   UsageResponse,
 } from './types';
 
-const BASE = (import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8788') + '/api';
+const backendPort = typeof window !== 'undefined' && window.electronAPI?.getBackendPort
+  ? window.electronAPI.getBackendPort()
+  : 8788;
+const BASE = (import.meta.env.VITE_API_BASE || `http://127.0.0.1:${backendPort}`) + '/api';
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`);
@@ -118,8 +121,9 @@ export const api = {
     if (accountId) path += `&account_id=${encodeURIComponent(accountId)}`;
     return get<{ days: number; stats: DailyModelStat[] }>(path);
   },
-  getModelTokenStats: (days = 30, accountId?: string) => {
+  getModelTokenStats: (days = 30, accountId?: string, period?: string) => {
     let path = `/analytics/opencode/model-tokens?days=${days}`;
+    if (period) path += `&period=${encodeURIComponent(period)}`;
     if (accountId) path += `&account_id=${encodeURIComponent(accountId)}`;
     return get<{ days: number; stats: ModelTokenStat[] }>(path);
   },

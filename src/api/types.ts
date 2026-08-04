@@ -85,6 +85,11 @@ export interface DailyStat {
   date: string;
   total_cost_usd: number;
   request_count: number;
+  total_input_tokens: number;
+  uncached_input_tokens: number;
+  cache_hit_tokens: number;
+  cache_write_tokens: number;
+  total_output_tokens: number;
 }
 
 export interface DailyModelStat {
@@ -92,6 +97,8 @@ export interface DailyModelStat {
   model: string;
   total_cost_usd: number;
   request_count: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
 }
 
 export interface ModelTokenStat {

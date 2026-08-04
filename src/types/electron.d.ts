@@ -7,6 +7,7 @@ export type ElectronAPI = {
   };
   getVersion: () => Promise<string>;
   getName: () => Promise<string>;
+  getBackendPort: () => number;
   window: {
     minimize: () => void;
     maximize: () => void;
