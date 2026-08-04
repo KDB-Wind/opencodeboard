@@ -1,29 +1,29 @@
 # 68HUB Changelog
 
-## v1.1.2
+## v1.1.3
 
-- **新增 macOS Intel (x64) 安装包**：GitHub Actions 自动构建 mac-x64 与 mac-arm64 DMG
-  Added macOS Intel (x64) installer: builds both mac-x64 and mac-arm64 DMGs
-- **OpenAI 模型图标改为本地内联 SVG**：不再依赖外部 CDN
-  OpenAI model icons now bundled locally, no external CDN
-- **修正输入 Token 统计**：输入包含缓存命中与缓存写入，与网页用量一致
-  Fixed input token stats to include cache hit/write, matching the web
-- **Token 明细悬浮窗**：首页总 Token 与统计页输入卡片悬浮查看明细与命中率
-  Token breakdown tooltip on Dashboard and Token Stats
-- **记录级缓存明细**：使用记录表格中悬浮每条记录的输入数值，即可查看该条的缓存命中与写入明细
-  Per-record cache breakdown: hover any input token in the usage table to see cache hit/write details
-- **用量解析与同步增强**：按字段名解析，同步自动更新已有记录
-  Field-based parsing; sync updates existing records
-- **内置浏览器登录**：一键登录 OpenCode，自动获取 Auth Cookie 与 Workspace ID，手动添加仍保留
-  Built-in browser login: one-click sign-in auto-captures Auth Cookie and Workspace ID; manual entry still supported
-- **登录窗口自定义标题栏**：返回/最小化/最大化/关闭按钮与顶部加载动画，macOS 为红绿灯样式
-  Custom title bar for the login window with back/window controls and a top loading bar; macOS uses traffic-light styling
+### 更新 / Updates
 
-## macOS 优化 | macOS
+- 重构统计页，整合汇总卡片、模型排行与用量趋势。
+  Reworked the Stats page with summary cards, model ranking and usage trends.
+- 统一全站时间选择为今天、近 7 天、近 30 天和全部，并持久化最近选择。
+  Unified time ranges to Today, 7 Days, 30 Days and All, with the latest choice persisted.
+- 每日页支持日期导航、按模型查看 Token 明细及缓存 Token/缓存率。
+  Added date navigation and per-model input, output, cache token and cache rate details.
+- Dashboard 增加今日 Token 使用量，模型 Top 3 支持时间段切换。
+  Added today's token usage to the Dashboard and period switching for the Top 3 models.
+- 模型 Token 图表使用对数比例，并根据模型数量调整输入/输出柱间距。
+  Added logarithmic model token charts with adaptive input/output bar spacing.
+- 后端端口冲突时自动寻找可用端口，前端自动连接实际端口。
+  The backend now finds an available port automatically and the frontend connects to it.
 
-- 使用原生标题栏与交通灯按钮，自定义按钮仅保留在 Windows；品牌文字移至右上角
-  Native title bar and traffic lights; custom buttons are Windows-only; brand moves to top-right
-- 原生关闭按钮支持最小化到托盘，确认退出时真正退出
-  Native close button supports minimize-to-tray and real quit
-- 菜单栏图标改为 16x16 彩色小图标
-  Menu bar icon is now a 16x16 colored icon
+### 修复 / Fixes
+
+- 修复时间范围或账户切换后数据未即时刷新的问题。
+  Fixed data not refreshing immediately after changing the time range or account.
+- 修复模型图表柱状图在极端 Token 数量级下不可见的问题。
+  Fixed model bars becoming invisible across extreme token magnitudes.
+- 修复时间选择器、费用/请求切换器选中态对比度不足的问题。
+  Improved contrast for time range and cost/request selectors.
+- 修复图表 Y 轴单位被裁切及输入/输出柱间距过大的问题。
+  Fixed clipped Y-axis units and excessive input/output bar spacing.

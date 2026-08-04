@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   getVersion: () => ipcRenderer.invoke('get-app-version'),
   getName: () => ipcRenderer.invoke('get-app-name'),
+  getBackendPort: () => ipcRenderer.sendSync('get-backend-port') as number,
   window: {
     minimize: () => ipcRenderer.send('window-minimize'),
     maximize: () => ipcRenderer.send('window-maximize'),

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { usePolling } from '../hooks/usePolling';
@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import { ModelIcon } from '../components/ModelIcon';
 import { UsageTable } from '../components/UsageTable';
 import { TokenBreakdownTooltip } from '../components/TokenBreakdownTooltip';
+import { getStoredTimeRange, storeTimeRange, TimeRangeTabs, type TimeRange } from '../components/TimeRangeTabs';
 import type { QuotaWindow } from '../api/types';
 
 function fmt(v: number) {
@@ -151,11 +152,29 @@ function ModelDonut({ models: raw }: { models: { model: string; total_input_toke
 
 export function Dashboard() {
   const { t, i18n } = useTranslation();
+  const [topPeriod, setTopPeriod] = useState<TimeRange>(getStoredTimeRange);
+  useEffect(() => {
+    storeTimeRange(topPeriod);
+  }, [topPeriod]);
   const { data, loading } = usePolling(() => api.getDashboard('30d'), 30000);
+
+  const { data: todayData } = usePolling(
+    () => api.getModelTokenStats(1, undefined, 'today'),
+    60000,
+  );
+
+  const { data: topData } = usePolling(
+    () => api.getModelTokenStats(1, undefined, topPeriod),
+    60000,
+    true,
+    [topPeriod],
+  );
 
   const overview = data?.overview?.opencode;
   const quota = (data?.quota ?? []).filter((q) => q.success);
   const tokens = data?.model_tokens ?? [];
+  const todayTokens = todayData?.stats ?? [];
+  const topTokens = topData?.stats ?? [];
   const tokenBreakdown = {
     uncachedInput: tokens.reduce((s, m) => s + Number(m.uncached_input_tokens ?? m.total_input_tokens ?? 0), 0),
     cacheHit: tokens.reduce((s, m) => s + Number(m.cache_hit_tokens ?? 0), 0),
@@ -166,6 +185,7 @@ export function Dashboard() {
   const hero = useMemo(() => {
     const tkn = tokens.reduce((s, m) => s + m.total_input_tokens + m.total_output_tokens, 0);
     const r = tokens.reduce((s, m) => s + m.request_count, 0);
+    const today = todayTokens.reduce((s, m) => s + m.total_input_tokens + m.total_output_tokens, 0);
     return [
       { label: t('dashboard.account'), value: overview?.account_count ?? '-', sub: t('dashboard.availableBlocked', { available: overview?.success_count ?? 0, blocked: overview?.blocked_count ?? 0 }), breakdown: null },
       { label: t('dashboard.remainingQuota'), value: overview ? `${overview.avg_effective_remaining}%` : '-', sub: t('dashboard.avgRemainingRatio'), breakdown: null },
@@ -175,8 +195,14 @@ export function Dashboard() {
         sub: t('dashboard.requests', { count: r.toLocaleString() }),
         breakdown: tokenBreakdown,
       },
+      {
+        label: t('dashboard.todayTokenUsage'),
+        value: todayData ? fmt(today) : '-',
+        sub: t('dashboard.todayTokenDesc'),
+        breakdown: null,
+      },
     ];
-  }, [overview, tokens, t, i18n.language]);
+  }, [overview, tokens, todayTokens, t, i18n.language]);
 
   if (loading && !data) {
     return (
@@ -195,7 +221,7 @@ export function Dashboard() {
     <div className="space-y-4">
       <h1 className="text-lg font-bold">{t('dashboard.title')}</h1>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-4 gap-4">
         {hero.map((h) => (
           <div key={h.label} className="border border-base-200 rounded-xl px-4 py-3">
             <div className="text-[11px] font-bold text-base-content/40 uppercase tracking-wider">{h.label}</div>
@@ -236,13 +262,16 @@ export function Dashboard() {
         </div>
 
         <div className="flex-1 border border-base-200 rounded-xl p-4">
-          <div className="text-xs font-bold text-base-content/50 uppercase tracking-wider mb-3">{t('dashboard.modelTop3')}</div>
-          <ModelDonut models={tokens} />
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs font-bold text-base-content/50 uppercase tracking-wider">{t('dashboard.modelTop3')}</div>
+            <TimeRangeTabs value={topPeriod} onChange={setTopPeriod} size="xs" />
+          </div>
+          <ModelDonut models={topTokens} />
           <div className="text-[11px] text-base-content/30 mt-3 pt-3 border-t border-base-200">
-            {tokens.length > 0
+            {topTokens.length > 0
               ? t('dashboard.mostConsumed', {
-                  model: tokens[0]?.model ?? '',
-                  percent: tokens[0] ? ((tokens[0].total_input_tokens + tokens[0].total_output_tokens) / (tokens.reduce((s, m) => s + m.total_input_tokens + m.total_output_tokens, 0)) * 100).toFixed(1) : 0,
+                  model: topTokens[0]?.model ?? '',
+                  percent: topTokens[0] ? ((topTokens[0].total_input_tokens + topTokens[0].total_output_tokens) / (topTokens.reduce((s, m) => s + m.total_input_tokens + m.total_output_tokens, 0)) * 100).toFixed(1) : 0,
                 })
               : t('dashboard.noModelData')}
           </div>

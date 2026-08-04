@@ -583,7 +583,12 @@ export function opencodeDailyStats(days = 30, accountId?: string | null): Record
     .prepare(
       `SELECT substr(created_at, 1, 10) AS date,
               SUM(cost_usd) AS total_cost_usd,
-              COUNT(*) AS request_count
+               COUNT(*) AS request_count,
+               SUM(input_tokens + cache_read_tokens + cache_write_5m_tokens + cache_write_1h_tokens) AS total_input_tokens,
+               SUM(input_tokens) AS uncached_input_tokens,
+               SUM(cache_read_tokens) AS cache_hit_tokens,
+               SUM(cache_write_5m_tokens + cache_write_1h_tokens) AS cache_write_tokens,
+               SUM(output_tokens) AS total_output_tokens
        FROM usage_records
        ${where}
        GROUP BY substr(created_at, 1, 10)
@@ -593,7 +598,12 @@ export function opencodeDailyStats(days = 30, accountId?: string | null): Record
   return rows.map((r) => ({
     date: r.date,
     total_cost_usd: Math.round(Number(r.total_cost_usd || 0) * 1e6) / 1e6,
-    request_count: Number(r.request_count),
+     request_count: Number(r.request_count),
+     total_input_tokens: Number(r.total_input_tokens || 0),
+     uncached_input_tokens: Number(r.uncached_input_tokens || 0),
+     cache_hit_tokens: Number(r.cache_hit_tokens || 0),
+     cache_write_tokens: Number(r.cache_write_tokens || 0),
+     total_output_tokens: Number(r.total_output_tokens || 0),
   }));
 }
 
@@ -613,7 +623,9 @@ export function opencodeDailyModelStats(
       `SELECT substr(created_at, 1, 10) AS date,
               model,
               SUM(cost_usd) AS total_cost_usd,
-              COUNT(*) AS request_count
+              COUNT(*) AS request_count,
+              SUM(input_tokens + cache_read_tokens + cache_write_5m_tokens + cache_write_1h_tokens) AS total_input_tokens,
+              SUM(output_tokens) AS total_output_tokens
        FROM usage_records
        ${where}
        GROUP BY substr(created_at, 1, 10), model
@@ -625,6 +637,8 @@ export function opencodeDailyModelStats(
     model: r.model,
     total_cost_usd: Math.round(Number(r.total_cost_usd || 0) * 1e6) / 1e6,
     request_count: Number(r.request_count),
+    total_input_tokens: Number(r.total_input_tokens || 0),
+    total_output_tokens: Number(r.total_output_tokens || 0),
   }));
 }
 
@@ -736,19 +750,22 @@ export function opencodeModelTokenStats(
   period = '30d',
   accountId?: string | null,
 ): Record<string, unknown>[] {
-  let where: string;
-  if (period === '5h') {
-    where = "WHERE datetime(created_at) >= datetime('now', '-5 hours')";
-  } else if (period === '7d') {
-    where = "WHERE datetime(created_at) >= datetime('now', '-7 days')";
-  } else {
-    where = "WHERE datetime(created_at) >= datetime('now', '-30 days')";
-  }
+  const clauses: string[] = [];
   const params: unknown[] = [];
+  if (period === '5h') {
+    clauses.push("datetime(created_at) >= datetime('now', '-5 hours')");
+  } else if (period === 'today') {
+    clauses.push("substr(created_at, 1, 10) = date('now')");
+  } else if (period !== 'all') {
+    const days = Math.max(1, Number(/^(\d+)d$/.exec(period)?.[1] ?? 30));
+    clauses.push("datetime(created_at) >= datetime('now', ?)");
+    params.push(`-${days} days`);
+  }
   if (accountId) {
-    where += ' AND account_id = ?';
+    clauses.push('account_id = ?');
     params.push(accountId);
   }
+  const where = clauses.length ? 'WHERE ' + clauses.join(' AND ') : '';
   const rows = getDb()
     .prepare(
       `SELECT model,

@@ -25,11 +25,11 @@
 
 | Module | Description |
 |--------|-------------|
-| 📊 **Dashboard** | Account count, remaining quota, total token consumption at a glance; quota progress bars (5h/7d/30d) on the left, Top 3 model Input/Output donut chart on the right |
-| 📈 **Token Stats** | Model token consumption ranking (stacked bar chart) + daily trends per model (multi-series line chart), filterable by account and time range |
-| 📅 **Daily Trends** | Daily cost and request volume line charts, filterable by account and time range |
+| 📊 **Dashboard** | Account count, remaining quota, total and today's token consumption at a glance; quota progress bars (5h/7d/30d) on the left, Top 3 model Input/Output donut chart with period switching on the right |
+| 📈 **Token Stats** | Log-scale model token consumption chart and usage trends with adaptive input/output bar spacing; filterable by account and time range, defaulting to the last 30 days with the selection persisted |
+| 📅 **Daily Trends** | Browse daily input, output, cache tokens and cache rate by model, with account filtering |
 | 📋 **Usage Records** | Complete usage record log with pagination and account filtering |
-| ⚙️ **Settings** | Multi-account management (add/test/sync/backfill/delete), auto-sync toggle and interval setting |
+| ⚙️ **Settings** | Multi-account management (add/test/sync/backfill/delete), auto-sync toggle and interval setting; automatically switches to an available backend port when needed |
 | ℹ️ **About** | Contact info and tech stack |
 
 <p align="center">
@@ -101,7 +101,7 @@ pnpm dev:vite
 pnpm dist
 ```
 
-Output: `release\68HUB Setup 1.1.1.exe`
+Output: `release\68HUB Setup <version>.exe`
 
 <p align="center">
   <img src="./assets/readme/section-thanks.svg" width="100%" alt="Acknowledgments">

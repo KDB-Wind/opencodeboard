@@ -55,8 +55,8 @@ export function DailyChart({ data, mode }: DailyChartProps) {
           }}
           formatter={(value, name) => {
             const v = Number(value);
-            if (name === 'cost') return ['$' + v.toFixed(4), t('dailyTrends.tooltipCost')];
-            return [v, t('dailyTrends.tooltipRequests')];
+            if (name === 'cost') return ['$' + v.toFixed(4), t('tokenStats.trendTooltipCost')];
+            return [v, t('tokenStats.trendTooltipRequests')];
           }}
           labelFormatter={(label) => {
             const match = chartData.find((d) => d.date === label);
