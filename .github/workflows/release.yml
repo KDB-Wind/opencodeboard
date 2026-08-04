@@ -55,7 +55,7 @@ jobs:
 
       - name: Rebuild native modules
         run: |
-          rm -rf node_modules/better-sqlite3/build
+          node -e "require('fs').rmSync('node_modules/better-sqlite3/build', { recursive: true, force: true })"
           npx electron-rebuild -f -w better-sqlite3 --arch ${{ matrix.arch }}
 
       - name: Verify native module architecture
