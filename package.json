@@ -24,6 +24,7 @@
     "directories": {
       "output": "release"
     },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "npmRebuild": false,
     "files": [
       "dist/**/*",
