@@ -27,7 +27,14 @@ function matchIcon(model: string): string | null {
 
 export function ModelIcon({ model, className = 'w-4 h-4' }: { model: string; className?: string }) {
   const slug = matchIcon(model);
-  if (!slug) return null;
+  if (!slug) {
+    return (
+      <svg viewBox="0 0 24 24" className={`${className} shrink-0`} aria-label={model} role="img">
+        <circle cx="12" cy="12" r="9" fill="currentColor" opacity="0.18" />
+        <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    );
+  }
 
   if (slug === 'openai') {
     return <OpenAIIcon className={className} />;

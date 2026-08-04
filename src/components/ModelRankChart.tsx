@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts';
 import type { ModelTokenStat } from '../api/types';
+import { ModelIcon } from './ModelIcon';
 
 interface ModelRankChartProps {
   data: ModelTokenStat[];
@@ -16,10 +17,28 @@ interface ModelRankChartProps {
   compact?: boolean;
 }
 
+function shortModelName(model: string) {
+  return model.includes('-') ? model.slice(model.indexOf('-') + 1) : model;
+}
+
+function ModelAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+  const model = payload?.value || '';
+  return (
+    <g transform={`translate(${x ?? 0},${y ?? 0})`}>
+      <foreignObject x="-64" y="0" width="128" height="28">
+        <div className="flex items-center justify-center gap-1 text-[11px] text-base-content/70 whitespace-nowrap">
+          <ModelIcon model={model} className="w-3.5 h-3.5" />
+          <span>{shortModelName(model)}</span>
+        </div>
+      </foreignObject>
+    </g>
+  );
+}
+
 export function ModelRankChart({ data, height = 320, compact }: ModelRankChartProps) {
   const barSize = compact ? 12 : Math.min(56, Math.max(22, 280 / Math.max(data.length, 1)));
   const chartData = data.map((d) => ({
-    name: d.model.includes('-') ? d.model.slice(d.model.indexOf('-') + 1) : d.model,
+    name: d.model,
     fullName: d.model,
     rawInput: d.total_input_tokens,
     rawOutput: d.total_output_tokens,
@@ -55,6 +74,10 @@ export function ModelRankChart({ data, height = 320, compact }: ModelRankChartPr
         <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.87 0.01 80)" vertical={false} />
         <XAxis
           dataKey="name"
+          tick={<ModelAxisTick />}
+          interval={0}
+          minTickGap={0}
+          height={36}
           axisLine={{ stroke: 'oklch(0.87 0.01 80)' }}
           tickLine={false}
         />

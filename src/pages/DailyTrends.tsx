@@ -48,6 +48,11 @@ export function DailyTrends() {
       requestCount: rows.reduce((s, r) => s + r.request_count, 0),
       totalInput: rows.reduce((s, r) => s + r.total_input_tokens, 0),
       totalOutput: rows.reduce((s, r) => s + r.total_output_tokens, 0),
+      cacheHit: rows.reduce((s, r) => s + r.cache_hit_tokens, 0),
+      cacheRate: rows.reduce((s, r) => s + r.uncached_input_tokens + r.cache_hit_tokens + r.cache_write_tokens, 0) > 0
+        ? (rows.reduce((s, r) => s + r.cache_hit_tokens, 0) /
+          rows.reduce((s, r) => s + r.uncached_input_tokens + r.cache_hit_tokens + r.cache_write_tokens, 0)) * 100
+        : 0,
       totalCost: rows.reduce((s, r) => s + r.total_cost_usd, 0),
     };
   }, [dayModels, selectedDate]);
@@ -126,20 +131,28 @@ export function DailyTrends() {
         )}
       </div>
 
-      <div className="flex gap-4 text-sm">
-        <div className="border border-base-200 rounded-lg px-4 py-2.5 flex-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 text-sm">
+        <div className="border border-base-200 rounded-lg px-4 py-2.5">
           <div className="text-[11px] font-bold text-base-content/40 uppercase">{t('dailyTrends.totalRequests')}</div>
           <div className="text-lg font-bold mt-0.5">{dayStats.requestCount.toLocaleString()}</div>
         </div>
-        <div className="border border-base-200 rounded-lg px-4 py-2.5 flex-1">
+        <div className="border border-base-200 rounded-lg px-4 py-2.5">
           <div className="text-[11px] font-bold text-base-content/40 uppercase">{t('dailyTrends.totalInput')}</div>
           <div className="text-lg font-bold mt-0.5">{fmtTokens(dayStats.totalInput)}</div>
         </div>
-        <div className="border border-base-200 rounded-lg px-4 py-2.5 flex-1">
+        <div className="border border-base-200 rounded-lg px-4 py-2.5">
           <div className="text-[11px] font-bold text-base-content/40 uppercase">{t('dailyTrends.totalOutput')}</div>
           <div className="text-lg font-bold mt-0.5">{fmtTokens(dayStats.totalOutput)}</div>
         </div>
-        <div className="border border-base-200 rounded-lg px-4 py-2.5 flex-1">
+        <div className="border border-base-200 rounded-lg px-4 py-2.5">
+          <div className="text-[11px] font-bold text-base-content/40 uppercase">{t('dailyTrends.cacheTokens')}</div>
+          <div className="text-lg font-bold mt-0.5">{fmtTokens(dayStats.cacheHit)}</div>
+        </div>
+        <div className="border border-base-200 rounded-lg px-4 py-2.5">
+          <div className="text-[11px] font-bold text-base-content/40 uppercase">{t('dailyTrends.cacheRate')}</div>
+          <div className="text-lg font-bold mt-0.5">{dayStats.cacheRate.toFixed(1)}%</div>
+        </div>
+        <div className="border border-base-200 rounded-lg px-4 py-2.5">
           <div className="text-[11px] font-bold text-base-content/40 uppercase">{t('dailyTrends.totalCost')}</div>
           <div className="text-lg font-bold mt-0.5">${dayStats.totalCost.toFixed(4)}</div>
         </div>
