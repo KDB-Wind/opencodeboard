@@ -625,6 +625,9 @@ export function opencodeDailyModelStats(
               SUM(cost_usd) AS total_cost_usd,
               COUNT(*) AS request_count,
               SUM(input_tokens + cache_read_tokens + cache_write_5m_tokens + cache_write_1h_tokens) AS total_input_tokens,
+              SUM(input_tokens) AS uncached_input_tokens,
+              SUM(cache_read_tokens) AS cache_hit_tokens,
+              SUM(cache_write_5m_tokens + cache_write_1h_tokens) AS cache_write_tokens,
               SUM(output_tokens) AS total_output_tokens
        FROM usage_records
        ${where}
@@ -638,6 +641,9 @@ export function opencodeDailyModelStats(
     total_cost_usd: Math.round(Number(r.total_cost_usd || 0) * 1e6) / 1e6,
     request_count: Number(r.request_count),
     total_input_tokens: Number(r.total_input_tokens || 0),
+    uncached_input_tokens: Number(r.uncached_input_tokens || 0),
+    cache_hit_tokens: Number(r.cache_hit_tokens || 0),
+    cache_write_tokens: Number(r.cache_write_tokens || 0),
     total_output_tokens: Number(r.total_output_tokens || 0),
   }));
 }
