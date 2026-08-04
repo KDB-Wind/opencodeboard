@@ -23,13 +23,13 @@ jobs:
             builder-flags: --win --x64
             artifact-name: 68HUB-win-x64
             ext: .exe
-          - os: macos-latest
+          - os: macos-15
             arch: arm64
             platform: mac
             builder-flags: --mac --arm64
             artifact-name: 68HUB-mac-arm64
             ext: .dmg
-          - os: macos-latest
+          - os: macos-15-intel
             arch: x64
             platform: mac
             builder-flags: --mac --x64
@@ -61,7 +61,29 @@ jobs:
       - run: pnpm build
 
       - name: Rebuild native modules
-        run: npx electron-rebuild -f -w better-sqlite3 --arch ${{ matrix.arch }}
+        run: |
+          rm -rf node_modules/better-sqlite3/build
+          npx electron-rebuild -f -w better-sqlite3 --arch ${{ matrix.arch }}
+
+      - name: Verify native module architecture
+        shell: bash
+        run: |
+          native_info="$(file node_modules/better-sqlite3/build/Release/better_sqlite3.node)"
+          echo "$native_info"
+          case "${{ matrix.arch }}" in
+            x64)
+              case "$native_info" in
+                *x86_64*) ;;
+                *) echo "Expected x86_64 native module" >&2; exit 1 ;;
+              esac
+              ;;
+            arm64)
+              case "$native_info" in
+                *arm64*) ;;
+                *) echo "Expected arm64 native module" >&2; exit 1 ;;
+              esac
+              ;;
+          esac
 
       - name: Package
         run: npx --yes electron-builder@25 ${{ matrix.builder-flags }} --publish never
