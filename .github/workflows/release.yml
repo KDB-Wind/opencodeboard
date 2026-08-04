@@ -35,13 +35,6 @@ jobs:
             builder-flags: --mac --x64
             artifact-name: 68HUB-mac-x64
             ext: .dmg
-          - os: ubuntu-latest
-            arch: x64
-            platform: linux
-            builder-flags: --linux --x64
-            artifact-name: 68HUB-linux-x64
-            ext: .AppImage
-
     runs-on: ${{ matrix.os }}
 
     steps:
