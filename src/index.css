@@ -3,13 +3,6 @@
   themes: cupcake --default, forest;
 }
 
-@font-face {
-  font-family: "F1";
-  src: url("./assets/fonts/f1.ttf") format("truetype");
-  font-weight: 400 700;
-  font-style: normal;
-}
-
 html {
   user-select: none;
   overflow: hidden;
@@ -17,9 +10,8 @@ html {
 
 body {
   margin: 0;
-  font-family: "F1", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   overflow: hidden;
 }
 
