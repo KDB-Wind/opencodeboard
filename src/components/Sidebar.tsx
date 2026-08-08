@@ -7,10 +7,8 @@ function useLinks() {
   return [
     { to: '/', label: t('nav.dashboard'), icon: 'grid' },
     { to: '/tokens', label: t('nav.tokens'), icon: 'bar-chart' },
-    { to: '/daily', label: t('nav.daily'), icon: 'trending-up' },
     { to: '/records', label: t('nav.records'), icon: 'list' },
     { to: '/settings', label: t('nav.settings'), icon: 'settings' },
-    { to: '/about', label: t('nav.about'), icon: 'info' },
   ];
 }
 

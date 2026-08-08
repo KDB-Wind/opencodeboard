@@ -74,8 +74,8 @@ export function parseUsageResponse(text: string): ParsedUsageRecord[] {
       cache_read_tokens: parseOptionalToken(readNumber('cacheReadTokens')),
       cache_write_5m_tokens: parseOptionalToken(readNumber('cacheWrite5mTokens')),
       cache_write_1h_tokens: parseOptionalToken(readNumber('cacheWrite1hTokens')),
-      cost_raw: costInt,
-      cost_usd: costInt / 1_000_000_000,
+    cost_raw: costInt,
+    cost_usd: costInt / 100_000_000,
       key_id: readString('keyID'),
       plan: plans.get(usgId) ?? null,
     });

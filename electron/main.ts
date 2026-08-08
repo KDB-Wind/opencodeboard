@@ -1,7 +1,8 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, shell, Tray } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { startOpenCodeLogin } from './opencode-login';
+import { loginStartUrl, startOpenCodeLogin } from './opencode-login';
+import { loadOrCreateAuthToken, setDataDir } from './backend/config';
 import {
   isBackendRunning,
   restartBackendServer,
@@ -9,7 +10,9 @@ import {
   stopBackendServer,
 } from './backend/server';
 
+app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('disable-features', 'Autofill');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=384');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
@@ -17,11 +20,27 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let trayMode = false;
 let trayConfigured = false;
-let closeAllowed = false;
+let savedBounds: Electron.Rectangle | null = null;
 
 const BACKEND_PORT = 8788;
 const BACKEND_HOST = '127.0.0.1';
 let backendPort = BACKEND_PORT;
+
+const EXTERNAL_LINK_ALLOWLIST = ['opencode.ai', 'github.com'];
+
+// 数据迁移:检测旧版本 userData 目录并整体移动(保留加密密钥与数据库),避免重新登录。
+function migrateUserData(): void {
+  try {
+    const oldDir = path.join(app.getPath('appData'), '68hub');
+    const newDir = app.getPath('userData');
+    if (oldDir !== newDir && fs.existsSync(oldDir) && !fs.existsSync(newDir)) {
+      fs.renameSync(oldDir, newDir);
+      console.log(`[migrate] moved userData ${oldDir} -> ${newDir}`);
+    }
+  } catch (err) {
+    console.warn('[migrate] failed:', err);
+  }
+}
 
 function trayConfigPath(): string {
   return path.join(app.getPath('userData'), 'tray.json');
@@ -93,14 +112,18 @@ function createTray() {
     icon = icon.resize({ width: 32, height: 32 });
   }
   tray = new Tray(icon);
-  tray.setToolTip('68HUB');
+  tray.setToolTip('OpenCodeBoard');
 
   const contextMenu = Menu.buildFromTemplate([
     {
       label: '显示窗口',
       click: () => {
-        mainWindow?.show();
-        mainWindow?.focus();
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.show();
+          mainWindow.focus();
+        } else {
+          createWindow();
+        }
       },
     },
     { type: 'separator' },
@@ -115,8 +138,12 @@ function createTray() {
   tray.setContextMenu(contextMenu);
 
   tray.on('double-click', () => {
-    mainWindow?.show();
-    mainWindow?.focus();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
+      mainWindow.focus();
+    } else {
+      createWindow();
+    }
   });
 }
 
@@ -128,12 +155,19 @@ function destroyTray() {
 }
 
 function createWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show();
+    mainWindow.focus();
+    return;
+  }
+
   const isWindows = process.platform === 'win32';
   const isMac = process.platform === 'darwin';
 
   mainWindow = new BrowserWindow({
-    width: 1100,
-    height: 720,
+    ...(savedBounds
+      ? { x: savedBounds.x, y: savedBounds.y, width: savedBounds.width, height: savedBounds.height }
+      : { width: 1100, height: 720 }),
     frame: !isWindows,
     titleBarStyle: isWindows ? 'hidden' : isMac ? 'hiddenInset' : 'default',
     icon: path.join(__dirname, isDev ? '../favicon.ico' : '../dist/favicon.ico'),
@@ -141,31 +175,30 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
     },
   });
 
   Menu.setApplicationMenu(null);
 
   mainWindow.webContents.on('before-input-event', (_e, input) => {
-    if (input.key === 'F12') {
+    if (isDev && input.key === 'F12') {
       mainWindow?.webContents.toggleDevTools();
     }
   });
 
+  // 托盘模式下关闭窗口 = 销毁窗口释放内存(渲染进程 ~120MB),主进程与后端继续驻留
   mainWindow.on('close', (event) => {
-    if (closeAllowed) {
-      closeAllowed = false;
-      return;
-    }
     if (trayMode) {
       event.preventDefault();
-      mainWindow?.hide();
-      return;
+      savedBounds = mainWindow?.getBounds() ?? null;
+      mainWindow?.destroy();
+      mainWindow = null;
     }
-    if (!trayConfigured) {
-      event.preventDefault();
-      mainWindow?.webContents.send('close-dialog-request');
-    }
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
   });
 
   mainWindow.on('maximize', () => {
@@ -189,6 +222,11 @@ ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendPort;
 });
 
+ipcMain.on('get-backend-token', (event) => {
+  setDataDir(backendDataDir());
+  event.returnValue = loadOrCreateAuthToken();
+});
+
 ipcMain.on('window-minimize', () => mainWindow?.minimize());
 ipcMain.on('window-maximize', () => {
   if (mainWindow?.isMaximized()) {
@@ -199,13 +237,11 @@ ipcMain.on('window-maximize', () => {
 });
 ipcMain.handle('window-close', async () => {
   if (trayMode) {
-    mainWindow?.hide();
+    savedBounds = mainWindow?.getBounds() ?? null;
+    mainWindow?.destroy();
+    mainWindow = null;
     return 'hide';
   }
-  if (!trayConfigured) {
-    return 'ask';
-  }
-  closeAllowed = true;
   mainWindow?.close();
   return 'quit';
 });
@@ -214,23 +250,33 @@ ipcMain.handle('close-confirm', async (_event, action: string) => {
   if (action === 'hide') {
     saveTrayPreference(true, true);
     createTray();
-    mainWindow?.hide();
+    savedBounds = mainWindow?.getBounds() ?? null;
+    mainWindow?.destroy();
+    mainWindow = null;
     return 'hide';
   }
   saveTrayPreference(false, true);
-  closeAllowed = true;
-  if (process.platform === 'darwin') {
-    app.quit();
-  } else {
-    mainWindow?.close();
-  }
+  app.quit();
   return 'quit';
 });
 
 ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() ?? false);
 
 ipcMain.handle('open-external', (_event, url: string) => {
-  shell.openExternal(url);
+  let parsed: URL;
+  try {
+    parsed = new URL(String(url ?? ''));
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:') return false;
+  const host = parsed.hostname.toLowerCase();
+  const allowed = EXTERNAL_LINK_ALLOWLIST.some(
+    (domain) => host === domain || host.endsWith(`.${domain}`),
+  );
+  if (!allowed) return false;
+  void shell.openExternal(parsed.toString());
+  return true;
 });
 
 ipcMain.handle('restart-backend', async () => {
@@ -246,6 +292,13 @@ ipcMain.handle('restart-backend', async () => {
 ipcMain.handle('opencode-login-start', () =>
   startOpenCodeLogin({ parent: mainWindow }),
 );
+
+// 在系统默认浏览器(Edge/Chrome)中打开登录页;
+// 登录 cookie 落在浏览器中,需用户手动复制回应用
+ipcMain.handle('opencode-login-system', () => {
+  void shell.openExternal(loginStartUrl());
+  return true;
+});
 
 ipcMain.handle('backend-pid', () => {
   return isBackendRunning() ? process.pid : null;
@@ -264,6 +317,7 @@ ipcMain.handle('set-tray-mode', (_event, v: boolean) => {
 });
 
 app.whenReady().then(async () => {
+  migrateUserData();
   loadTrayPreference();
   await startBackend();
   createWindow();
@@ -279,6 +333,7 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
+  if (trayMode) return;
   void stopBackend();
   if (process.platform !== 'darwin') {
     app.quit();

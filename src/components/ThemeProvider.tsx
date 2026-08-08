@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 
 type Theme = 'light' | 'dark' | 'system';
 
-const STORAGE_KEY = '68hub-theme';
+const STORAGE_KEY = 'opencodeboard-theme';
 const PREFER_DARK = '(prefers-color-scheme: dark)';
 
 interface ThemeContextValue {

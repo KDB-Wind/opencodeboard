@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { randomBytes } from 'crypto';
 
 export const DEFAULT_USAGE_SERVER_ID =
   'bfd684bfc2e4eed05cd0b518f5e4eafd3f3376e3938abb9e536e7c03df831e5c';
@@ -87,6 +88,30 @@ export function legacyConfigPath(): string {
 
 export function legacyRuntimeConfigPath(): string {
   return path.join(dataDir(), 'service.json');
+}
+
+export function authTokenPath(): string {
+  return path.join(dataDir(), 'auth-token');
+}
+
+export function loadOrCreateAuthToken(): string {
+  const p = authTokenPath();
+  try {
+    if (fs.existsSync(p)) {
+      const existing = fs.readFileSync(p, 'utf-8').trim();
+      if (existing.length >= 32) return existing;
+    }
+  } catch {
+    // ignore
+  }
+  const token = randomBytes(32).toString('hex');
+  try {
+    fs.mkdirSync(path.dirname(p), { recursive: true });
+    fs.writeFileSync(p, token, { encoding: 'utf-8', mode: 0o600 });
+  } catch {
+    // ignore
+  }
+  return token;
 }
 
 export function readOptionalJson(filePath: string): Record<string, unknown> {
@@ -210,9 +235,8 @@ function parseOpenCodeSettings(raw: unknown): OpenCodeSettings {
 }
 
 function listenSettingsFromLegacy(raw: Record<string, unknown>): [string, number] {
-  const host = String(
-    process.env['68BACKEND_LISTEN_HOST'] || raw.listen_host || DEFAULT_LISTEN_HOST,
-  );
+  // 始终强制回环地址,禁止从用户可写的配置/环境变量把 API 暴露到局域网
+  const host = DEFAULT_LISTEN_HOST;
   const portRaw = process.env['68BACKEND_LISTEN_PORT'] || raw.listen_port || DEFAULT_LISTEN_PORT;
   let port = DEFAULT_LISTEN_PORT;
   try {

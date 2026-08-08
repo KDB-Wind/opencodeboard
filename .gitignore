@@ -51,3 +51,6 @@ service.json
 # opencode skill files
 .agents/
 skills-lock.json
+
+# Build outputs (temporary fallback dir)
+release2

@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "68HUB",
+    "name": "OpenCodeBoard",
     "subtitle": "- OpenCode Go Manager"
   },
   "nav": {
@@ -16,6 +16,7 @@
     "noData": "暂无数据",
     "noUsageRecords": "暂无使用记录",
     "allAccounts": "全部账户",
+    "allModels": "全部模型",
     "page": "第 {{current}} / {{total}} 页",
     "prevPage": "上一页",
     "nextPage": "下一页",
@@ -54,6 +55,8 @@
     "totalTokenConsumption": "总 Token 消耗",
     "todayTokenUsage": "今日 Token 使用",
     "todayTokenDesc": "UTC 自然日",
+    "totalCost": "总费用",
+    "totalCostDesc": "近 30 天",
     "requests": "{{count}} 次请求",
     "accountQuotaStatus": "账户配额状态",
     "modelTop3": "模型用量 Top 3",
@@ -137,6 +140,11 @@
     "accounts": "OpenCode 账户",
     "addAccount": "添加账户",
     "loginViaBrowser": "浏览器登录自动获取",
+    "loginViaSystemBrowser": "在系统浏览器中登录 (Edge/Chrome)",
+    "loginSystemOpened": "已在系统浏览器中打开登录页。若内嵌窗口登录一直卡住,建议改用此方式:",
+    "loginSystemStep1": "在浏览器中完成登录(账号密码 / 邮箱验证码 / 其他验证)",
+    "loginSystemStep2": "登录成功后,按 F12 → Application → Cookies → https://opencode.ai,双击 auth 的值并复制(Ctrl+C)",
+    "loginSystemStep3": "把复制的值(以 auth= 开头)粘贴到下方 Auth Cookie 输入框,填好名称后点击保存",
     "loginInProgress": "请在打开的窗口中完成登录，登录成功后将自动填入账户信息...",
     "loginSuccess": "登录成功，已自动获取 Workspace ID 和 Auth Cookie",
     "loginCancelled": "已取消登录",
@@ -220,11 +228,11 @@
     "saveBackfillSettings": "保存回填设置"
   },
   "about": {
-    "title": "关于 68HUB",
+    "title": "OpenCodeBoard",
     "version": "v{{version}} · OpenCode Go 用量统计面板",
-    "desc1": "68HUB 是一个专为 OpenCode Go 平价 Coding Plan 设计的本地用量统计桌面应用。",
-    "desc2": "OpenCode AI 官方的用量页面数据分散、操作繁琐，难以直观掌握各模型的 Token 消耗和账户配额状态。68HUB 通过后端定时同步数据，以清晰的图表和布局展示关键指标，让你一目了然。",
-    "download": "下载最新版本",
+    "repo": "查看 GitHub 仓库",
+    "desc1": "OpenCodeBoard 是一个专为 OpenCode Go 平价 Coding Plan 设计的本地用量统计桌面应用。",
+    "desc2": "OpenCode AI 官方的用量页面数据分散、操作繁琐，难以直观掌握各模型的 Token 消耗和账户配额状态。OpenCodeBoard 通过后端定时同步数据，以清晰的图表和布局展示关键指标，让你一目了然。",
     "features": "功能",
     "feature1": "多账户配额实时监控（5小时 / 7天 / 30天）",
     "feature2": "各模型 Token 消耗排行与每日趋势",
@@ -232,13 +240,7 @@
     "feature4": "自动同步数据，无需手动刷新",
     "techStack": "技术栈",
     "thanks": "致谢",
-    "thanksText": "后端灵感来自 QuotaHub，已重写为 Hono + better-sqlite3 内嵌于 Electron 主进程，告别双进程打包。",
-    "checking": "正在检查更新...",
-    "latest": "已是最新版本",
-    "newVersion": "新版本 v{{version}} 可用",
-    "devBuild": "检测到开发版 —— 搁这调试呢？🐛",
-    "checkFailed": "无法检查更新",
-    "contact": "联系方式"
+    "thanksText": "感谢原项目 68hub 作者的开源贡献。"
   },
   "titleBar": {
     "closeDialogTitle": "关闭窗口时...",
@@ -247,7 +249,7 @@
     "quitApp": "退出应用"
   },
   "onboarding": {
-    "welcome": "欢迎使用 68HUB",
+    "welcome": "欢迎使用 OpenCodeBoard",
     "subtitle": "选择偏好的外观和系统行为",
     "themeLabel": "界面主题",
     "tray": "最小化到系统托盘",

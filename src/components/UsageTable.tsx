@@ -66,13 +66,11 @@ export function UsageTable({ records, showAccount }: UsageTableProps) {
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);
-    const locale = i18n.language === 'zh' ? 'zh-CN' : 'en-US';
-    return d.toLocaleString(locale, {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
   };
 
   const showBreakdown = (record: UsageRecord) => (e: MouseEvent<HTMLTableCellElement>) => {

@@ -10,7 +10,9 @@ import { getStoredTimeRange, storeTimeRange, TimeRangeTabs, type TimeRange } fro
 import type { QuotaWindow } from '../api/types';
 
 function fmt(v: number) {
-  if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M';
+  if (v >= 1_000_000_000_000) return (v / 1_000_000_000_000).toFixed(2) + 'T';
+  if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(2) + 'B';
+  if (v >= 1_000_000) return `${Math.round(v / 1_000_000)}M`;
   if (v >= 1_000) return (v / 1_000).toFixed(1) + 'K';
   return v.toString();
 }
@@ -186,20 +188,30 @@ export function Dashboard() {
     const tkn = tokens.reduce((s, m) => s + m.total_input_tokens + m.total_output_tokens, 0);
     const r = tokens.reduce((s, m) => s + m.request_count, 0);
     const today = todayTokens.reduce((s, m) => s + m.total_input_tokens + m.total_output_tokens, 0);
+    const totalCost = tokens.reduce((s, m) => s + m.total_cost_usd, 0);
     return [
-      { label: t('dashboard.account'), value: overview?.account_count ?? '-', sub: t('dashboard.availableBlocked', { available: overview?.success_count ?? 0, blocked: overview?.blocked_count ?? 0 }), breakdown: null },
-      { label: t('dashboard.remainingQuota'), value: overview ? `${overview.avg_effective_remaining}%` : '-', sub: t('dashboard.avgRemainingRatio'), breakdown: null },
+      { label: t('dashboard.account'), value: overview?.account_count ?? '-', sub: t('dashboard.availableBlocked', { available: overview?.success_count ?? 0, blocked: overview?.blocked_count ?? 0 }), breakdown: null, size: 'sm' },
+      { label: t('dashboard.remainingQuota'), value: overview ? `${overview.avg_effective_remaining}%` : '-', sub: t('dashboard.avgRemainingRatio'), breakdown: null, size: 'sm' },
       {
         label: t('dashboard.totalTokenConsumption'),
         value: fmt(tkn),
         sub: t('dashboard.requests', { count: r.toLocaleString() }),
         breakdown: tokenBreakdown,
+        size: 'md',
       },
       {
         label: t('dashboard.todayTokenUsage'),
         value: todayData ? fmt(today) : '-',
         sub: t('dashboard.todayTokenDesc'),
         breakdown: null,
+        size: 'md',
+      },
+      {
+        label: t('dashboard.totalCost'),
+        value: `$${totalCost.toFixed(4)}`,
+        sub: t('dashboard.totalCostDesc'),
+        breakdown: null,
+        size: 'md',
       },
     ];
   }, [overview, tokens, todayTokens, t, i18n.language]);
@@ -221,18 +233,18 @@ export function Dashboard() {
     <div className="space-y-4">
       <h1 className="text-lg font-bold">{t('dashboard.title')}</h1>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {hero.map((h) => (
-          <div key={h.label} className="border border-base-200 rounded-xl px-4 py-3">
-            <div className="text-[11px] font-bold text-base-content/40 uppercase tracking-wider">{h.label}</div>
+          <div key={h.label} className="border border-base-200 rounded-xl px-3 py-2.5">
+            <div className="text-[10px] font-bold text-base-content/40 uppercase tracking-wider truncate">{h.label}</div>
             {h.breakdown ? (
               <TokenBreakdownTooltip {...h.breakdown}>
-                <div className="text-3xl font-bold mt-1">{h.value}</div>
+                <div className={`font-bold mt-0.5 ${h.size === 'sm' ? 'text-xl' : 'text-2xl'}`}>{h.value}</div>
               </TokenBreakdownTooltip>
             ) : (
-              <div className="text-3xl font-bold mt-1">{h.value}</div>
+              <div className={`font-bold mt-0.5 ${h.size === 'sm' ? 'text-xl' : 'text-2xl'}`}>{h.value}</div>
             )}
-            <div className="text-[11px] text-base-content/40 mt-0.5">{h.sub}</div>
+            <div className="text-[10px] text-base-content/40 mt-0.5 truncate">{h.sub}</div>
           </div>
         ))}
       </div>

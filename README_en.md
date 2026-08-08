@@ -1,10 +1,12 @@
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="68HUB — OpenCode Go Usage Dashboard">
+  <img src="./assets/readme/hero.svg" width="100%" alt="OpenCodeBoard — OpenCode Go Usage Dashboard">
 </p>
 
 <p align="center">
   <a href="./README.md"><img src="./assets/readme/lang-en.svg" width="100%" alt="Switch to 中文"></a>
 </p>
+
+> Thanks to the original author of [68hub](https://github.com/evanfu0110/68hub) for the open-source contribution. This fork focuses on Windows and personal use; features and behavior may differ from upstream.
 
 ---
 
@@ -16,8 +18,10 @@
 |------|---------|
 | 📊 **Usage Dashboard** | ![Dashboard](Preview%20Photo/1.png) |
 | 📈 **Token Stats** | ![Token Stats](Preview%20Photo/2.png) |
-| 📅 **Daily Trends** | ![Daily Trends](Preview%20Photo/3.png) |
+| 📋 **Usage Records** | ![Usage Records](Preview%20Photo/3.png) |
 | ⚙️ **Settings** | ![Settings](Preview%20Photo/5.png) |
+
+> Screenshots may lag behind the latest release. See the app for the current UI.
 
 <p align="center">
   <img src="./assets/readme/section-features.svg" width="100%" alt="Features">
@@ -25,12 +29,10 @@
 
 | Module | Description |
 |--------|-------------|
-| 📊 **Dashboard** | Account count, remaining quota, total and today's token consumption at a glance; quota progress bars (5h/7d/30d) on the left, Top 3 model Input/Output donut chart with period switching on the right |
-| 📈 **Token Stats** | Log-scale model token consumption chart and usage trends with adaptive input/output bar spacing; filterable by account and time range, defaulting to the last 30 days with the selection persisted |
-| 📅 **Daily Trends** | Browse daily input, output, cache tokens and cache rate by model, with account filtering |
+| 📊 **Dashboard** | Account count, remaining quota, total and today's token consumption at a glance; quota progress bars (5h/7d/30d) on the left, top model Input/Output donut chart with period switching on the right |
+| 📈 **Token Stats** | Model token consumption ranking, usage trends and per-model breakdown; filterable by account, model and time range, defaulting to the last 30 days with the selection persisted |
 | 📋 **Usage Records** | Complete usage record log with pagination and account filtering |
 | ⚙️ **Settings** | Multi-account management (add/test/sync/backfill/delete), auto-sync toggle and interval setting; automatically switches to an available backend port when needed |
-| ℹ️ **About** | Contact info and tech stack |
 
 <p align="center">
   <img src="./assets/readme/section-quickstart.svg" width="100%" alt="Quick Start">
@@ -43,11 +45,11 @@ pnpm install
 # Run in dev mode (auto-starts backend + Vite + Electron)
 pnpm dev
 
-# Start Vite frontend only (requires backend or mock)
-pnpm dev:vite
+# Build installer (Windows)
+pnpm dist
 ```
 
-> The embedded backend starts automatically with the Electron main process (Hono + better-sqlite3), no need to start a separate Python service.
+> The embedded backend starts automatically with the Electron main process (Hono + better-sqlite3), no need to start any separate service.
 
 <p align="center">
   <img src="./assets/readme/section-accounts.svg" width="100%" alt="Multi-Account Support">
@@ -63,7 +65,7 @@ pnpm dev:vite
 
 | Frontend | Backend | Tools |
 |----------|---------|-------|
-| Electron 31 | Hono + better-sqlite3 | electron-builder |
+| Electron 43 | Hono + better-sqlite3 | electron-builder |
 | React 18 | TypeScript | Windows x64 |
 | Vite 5 + Tailwind 4 | zod | |
 | daisyUI 5 + Recharts | fetch (Node) | |
@@ -73,7 +75,7 @@ pnpm dev:vite
 </p>
 
 ```
-68HUB/
+opencodeboard/
 ├── electron/
 │   ├── main.ts            # Electron main process + embedded backend startup
 │   ├── preload.ts         # IPC bridge
@@ -89,8 +91,8 @@ pnpm dev:vite
 │       ├── analytics.ts   # Dashboard aggregation
 │       └── ...
 ├── src/                   # React frontend (api / components / pages / hooks)
-├── public/                # Static assets
-└── build/                 # Icons (auto-generated)
+├── public/                # Static assets and icons
+└── scripts/               # Packaging helper scripts
 ```
 
 <p align="center">
@@ -101,22 +103,19 @@ pnpm dev:vite
 pnpm dist
 ```
 
-Output: `release\68HUB Setup <version>.exe`
+Output: `release\OpenCodeBoard-<version>-win-x64.exe`
+
+**Releases**: official builds are published on [KDB-Wind/opencodeboard Releases](https://github.com/KDB-Wind/opencodeboard/releases).
+
+**Platform support**: Windows x64 is the primary target. macOS and Linux builds are not maintained here; you can adapt the Windows code yourself, but **they are not guaranteed to run**.
 
 <p align="center">
   <img src="./assets/readme/section-thanks.svg" width="100%" alt="Acknowledgments">
 </p>
 
+- [68hub](https://github.com/evanfu0110/68hub) — the upstream project this fork is based on
 - [QuotaHub](https://github.com/lvmiao233/QuotaHub) — Backend architecture inspiration
 - [OpenCode](https://opencode.ai) — API provider
-
-<p align="center">
-  <img src="./assets/readme/section-contact.svg" width="100%" alt="Contact">
-</p>
-
-- Email: 1771005798@qq.com
-- Telegram: [@Z6ix8ightBot](https://t.me/Z6ix8ightBot)
-- Website: [www.110.wtf](https://www.110.wtf)
 
 <p align="center">
   <img src="./assets/readme/section-license.svg" width="100%" alt="License MIT">

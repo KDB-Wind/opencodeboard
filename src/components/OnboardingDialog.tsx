@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from './ThemeProvider';
 
-const ONBOARDING_KEY = '68hub-onboarded';
+const ONBOARDING_KEY = 'opencodeboard-onboarded';
 
 export function OnboardingDialog() {
   const { t } = useTranslation();

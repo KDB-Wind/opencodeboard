@@ -5,6 +5,7 @@ import { api } from '../api/client';
 import { SyncProgressBar } from '../components/SyncProgress';
 import { useToast } from '../components/Toast';
 import { useTheme } from '../components/ThemeProvider';
+import { About } from './About';
 import type { OpenCodeAccount } from '../api/types';
 
 function BackendStatus() {
@@ -12,11 +13,15 @@ function BackendStatus() {
   const [status, setStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const [restarting, setRestarting] = useState(false);
 
+  const backendPort = typeof window !== 'undefined' && window.electronAPI?.getBackendPort
+    ? window.electronAPI.getBackendPort()
+    : 8788;
+
   const check = async () => {
     setStatus('checking');
     try {
-      const res = await fetch('http://127.0.0.1:8788/api/health');
-      if (res.ok) {
+      const res = await api.health();
+      if (res.status === 'ok') {
         setStatus('online');
       } else {
         setStatus('offline');
@@ -55,7 +60,7 @@ function BackendStatus() {
       </div>
       <div className="flex items-center justify-between">
         <span className="text-sm text-base-content/70">{t('settings.backendAddress')}</span>
-        <span className="text-sm text-base-content/50 font-mono">http://127.0.0.1:8788</span>
+        <span className="text-sm font-mono">http://127.0.0.1:{backendPort}</span>
       </div>
       <div className="flex gap-2">
         <button className="btn btn-outline btn-sm" onClick={check}>
@@ -80,6 +85,7 @@ export function Settings() {
   const [form, setForm] = useState({ name: '', auth_cookie: '', workspace_id: 'Default' });
   const [saving, setSaving] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [systemLoginOpened, setSystemLoginOpened] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -94,7 +100,7 @@ export function Settings() {
   const deleteModal = useRef<HTMLDialogElement>(null);
   const { theme, setTheme } = useTheme();
   const [language, setLanguageState] = useState<'zh' | 'en' | 'auto'>(() => {
-    const stored = localStorage.getItem('68hub-language');
+    const stored = localStorage.getItem('opencodeboard-language');
     if (stored === 'zh' || stored === 'en') return stored;
     return 'auto';
   });
@@ -102,7 +108,7 @@ export function Settings() {
   const handleLanguageChange = (l: 'zh' | 'en' | 'auto') => {
     setLanguageState(l);
     if (l === 'auto') {
-      localStorage.removeItem('68hub-language');
+      localStorage.removeItem('opencodeboard-language');
       const detected = navigator.language.startsWith('zh') ? 'zh' : 'en';
       i18n.changeLanguage(detected);
     } else {
@@ -138,7 +144,19 @@ export function Settings() {
   const openAdd = () => {
     setForm({ name: '', auth_cookie: '', workspace_id: 'Default' });
     setAutoFilled(false);
+    setSystemLoginOpened(false);
     addModal.current?.showModal();
+  };
+
+  const handleSystemLogin = async () => {
+    try {
+      if (window.electronAPI?.loginOpenCodeSystem) {
+        await window.electronAPI.loginOpenCodeSystem();
+      }
+      setSystemLoginOpened(true);
+    } catch (e) {
+      toast(t('settings.loginFailed', { msg: (e as Error).message }), 'error');
+    }
   };
 
   const handleBrowserLogin = async () => {
@@ -330,7 +348,7 @@ export function Settings() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
         <h1 className="text-lg font-bold text-base-content">{t('settings.title')}</h1>
         <p className="text-xs text-base-content/40 mt-1">{t('settings.subtitle')}</p>
@@ -541,6 +559,10 @@ export function Settings() {
         <BackendStatus />
       </div>
 
+      <div className="border border-base-200 rounded-xl p-4">
+        <About />
+      </div>
+
       <div className="border border-base-200 rounded-xl p-4 space-y-3">
         <h2 className="text-sm font-bold text-base-content/70">{t('settings.explanation')}</h2>
 
@@ -619,6 +641,22 @@ export function Settings() {
             )}
             {autoFilled && (
               <p className="text-xs text-success text-center">{t('settings.loginAutoNote')}</p>
+            )}
+            <button
+              className="btn btn-outline btn-sm w-full"
+              onClick={handleSystemLogin}
+            >
+              {t('settings.loginViaSystemBrowser')}
+            </button>
+            {systemLoginOpened && (
+              <div className="rounded-box bg-base-200/60 p-3 space-y-1.5 text-xs text-base-content/60 leading-relaxed">
+                <p>{t('settings.loginSystemOpened')}</p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>{t('settings.loginSystemStep1')}</li>
+                  <li>{t('settings.loginSystemStep2')}</li>
+                  <li>{t('settings.loginSystemStep3')}</li>
+                </ol>
+              </div>
             )}
             <div className="divider text-xs text-base-content/40">{t('settings.manualOr')}</div>
             <div>

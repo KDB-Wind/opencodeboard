@@ -184,7 +184,7 @@ function buildBar(): void {
   }
 
   const styleEl = document.createElement('style');
-  styleEl.textContent = `@keyframes 68hub-login-slide {
+  styleEl.textContent = `@keyframes opencodeboard-login-slide {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(400%); }
 }`;
@@ -200,7 +200,7 @@ function buildBar(): void {
     ['z-index', '2147483647'],
     ['background', 'linear-gradient(90deg, #4f8cff, #22d3ee, #4f8cff)'],
     ['display', 'none'],
-    ['animation', '68hub-login-slide 1.2s ease-in-out infinite'],
+    ['animation', 'opencodeboard-login-slide 1.2s ease-in-out infinite'],
   ]);
   document.documentElement.append(loadingBar);
 

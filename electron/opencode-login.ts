@@ -20,9 +20,14 @@ const BAR_HEIGHT = 38;
 const BAR_HTML = `<html><head><meta charset="utf-8"></head><body></body></html>`;
 const WORKSPACE_URL_RE = /\/workspace\/(wrk_[A-Za-z0-9]+)/;
 
+function isAllowedLoginHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  return h === 'opencode.ai' || h.endsWith('.opencode.ai');
+}
+
 let activeLogin: Promise<OpenCodeLoginResult> | null = null;
 
-function loginStartUrl(): string {
+export function loginStartUrl(): string {
   const params = new URLSearchParams({
     client_id: LOGIN_CLIENT_ID,
     redirect_uri: LOGIN_REDIRECT_URI,
@@ -68,6 +73,7 @@ function runLogin(opts: { parent?: BrowserWindow | null }): Promise<OpenCodeLogi
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
+        sandbox: true,
       },
     });
 
@@ -76,6 +82,7 @@ function runLogin(opts: { parent?: BrowserWindow | null }): Promise<OpenCodeLogi
         preload: path.join(__dirname, 'login-bar-preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
+        sandbox: true,
       },
     });
     win.contentView.addChildView(barView);
@@ -85,9 +92,35 @@ function runLogin(opts: { parent?: BrowserWindow | null }): Promise<OpenCodeLogi
         session: ses,
         contextIsolation: true,
         nodeIntegration: false,
+        sandbox: true,
       },
     });
     win.contentView.addChildView(pageView);
+
+    // 拒绝所有权限请求(摄像头/麦克风/通知等),Electron 默认是全部放行
+    ses.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
+    ses.setPermissionCheckHandler(() => false);
+
+    // 新窗口一律不打开;白名单内站点改为在当前视图内导航
+    pageView.webContents.setWindowOpenHandler(({ url }) => {
+      try {
+        if (isAllowedLoginHost(new URL(url).hostname)) {
+          void pageView.webContents.loadURL(url);
+        }
+      } catch {
+        // ignore malformed url
+      }
+      return { action: 'deny' };
+    });
+
+    // 导航白名单,防止登录过程中被重定向到钓鱼站点
+    pageView.webContents.on('will-navigate', (event, url) => {
+      try {
+        if (!isAllowedLoginHost(new URL(url).hostname)) event.preventDefault();
+      } catch {
+        event.preventDefault();
+      }
+    });
 
     const layout = () => {
       const [width, height] = win.getContentSize();
@@ -141,6 +174,9 @@ function runLogin(opts: { parent?: BrowserWindow | null }): Promise<OpenCodeLogi
       if (!win.isDestroyed()) {
         win.destroy();
       }
+      // 清理登录分区内存中的 cookie/缓存
+      void ses.clearStorageData();
+      void ses.clearCache();
       resolve(result);
     };
 

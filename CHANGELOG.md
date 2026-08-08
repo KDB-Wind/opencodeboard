@@ -1,4 +1,16 @@
-# 68HUB Changelog
+# OpenCodeBoard Changelog
+
+## v1.2.0 (fork)
+
+- OpenCodeBoard branding and new mascot logo.
+- Cost statistics fixed: cost unit is 1e-8 USD (was divided by 1e9, underreporting by 10x); existing data is migrated automatically on launch.
+- Security hardening: local API token auth, strict CORS, DPAPI-encrypted cookies at rest, sandboxed windows, CSP, hardened login flow.
+- Memory optimization: GPU acceleration disabled, renderer heap cap, tray mode destroys the window to free memory, close quits by default.
+- Dashboard: total cost card added, compact stat cards with adaptive token units (K/M/B/T).
+- Stats page merged with daily trends and gained model/account/time filters.
+- About page: original author contact info removed, only this fork's repository link kept.
+
+---
 
 ## v1.1.3
 

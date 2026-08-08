@@ -1,5 +1,5 @@
 name: 问题反馈 Bug Report
-description: 报告 68HUB 使用中遇到的问题 (Report a bug)
+description: 报告 OpenCodeBoard 使用中遇到的问题 (Report a bug)
 title: "[Bug] "
 labels: [bug]
 body:

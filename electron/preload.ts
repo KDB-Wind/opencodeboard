@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getVersion: () => ipcRenderer.invoke('get-app-version'),
   getName: () => ipcRenderer.invoke('get-app-name'),
   getBackendPort: () => ipcRenderer.sendSync('get-backend-port') as number,
+  getBackendToken: () => ipcRenderer.sendSync('get-backend-token') as string,
   window: {
     minimize: () => ipcRenderer.send('window-minimize'),
     maximize: () => ipcRenderer.send('window-maximize'),
@@ -19,6 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
   restartBackend: () => ipcRenderer.invoke('restart-backend'),
   loginOpenCode: () => ipcRenderer.invoke('opencode-login-start'),
+  loginOpenCodeSystem: () => ipcRenderer.invoke('opencode-login-system'),
   backendPid: () => ipcRenderer.invoke('backend-pid'),
   getTrayMode: () => ipcRenderer.invoke('get-tray-mode'),
   setTrayMode: (v: boolean) => ipcRenderer.invoke('set-tray-mode', v),

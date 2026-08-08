@@ -21,19 +21,19 @@ jobs:
             arch: x64
             platform: win
             builder-flags: --win --x64
-            artifact-name: 68HUB-win-x64
+            artifact-name: OpenCodeBoard-win-x64
             ext: .exe
           - os: macos-15
             arch: arm64
             platform: mac
             builder-flags: --mac --arm64
-            artifact-name: 68HUB-mac-arm64
+            artifact-name: OpenCodeBoard-mac-arm64
             ext: .dmg
           - os: macos-15-intel
             arch: x64
             platform: mac
             builder-flags: --mac --x64
-            artifact-name: 68HUB-mac-x64
+            artifact-name: OpenCodeBoard-mac-x64
             ext: .dmg
     runs-on: ${{ matrix.os }}
 

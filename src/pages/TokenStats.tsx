@@ -27,6 +27,7 @@ export function TokenStats() {
   const { t } = useTranslation();
   const [range, setRange] = useState<TimeRange>(getStoredTimeRange);
   const [accountId, setAccountId] = useState('');
+  const [model, setModel] = useState('');
   const [mode, setMode] = useState<'cost' | 'requests'>('cost');
 
   useEffect(() => {
@@ -53,19 +54,24 @@ export function TokenStats() {
   const stats = modelTokens?.stats ?? [];
   const trendStats = trendData?.stats ?? [];
 
-  const totalInput = stats.reduce((s, m) => s + m.total_input_tokens, 0);
-  const totalOutput = stats.reduce((s, m) => s + m.total_output_tokens, 0);
-  const totalCost = stats.reduce((s, m) => s + m.total_cost_usd, 0);
-  const totalRequests = stats.reduce((s, m) => s + m.request_count, 0);
-  const uncachedInput = stats.reduce((s, m) => s + Number(m.uncached_input_tokens ?? m.total_input_tokens ?? 0), 0);
-  const cacheHit = stats.reduce((s, m) => s + Number(m.cache_hit_tokens ?? 0), 0);
-  const cacheWrite = stats.reduce((s, m) => s + Number(m.cache_write_tokens ?? 0), 0);
+  const modelOptions = Array.from(new Set(stats.map((m) => m.model))).sort();
+  const filteredStats = model ? stats.filter((m) => m.model === model) : stats;
+
+  const totalInput = filteredStats.reduce((s, m) => s + m.total_input_tokens, 0);
+  const totalOutput = filteredStats.reduce((s, m) => s + m.total_output_tokens, 0);
+  const totalCost = filteredStats.reduce((s, m) => s + m.total_cost_usd, 0);
+  const totalRequests = filteredStats.reduce((s, m) => s + m.request_count, 0);
+  const uncachedInput = filteredStats.reduce((s, m) => s + Number(m.uncached_input_tokens ?? m.total_input_tokens ?? 0), 0);
+  const cacheHit = filteredStats.reduce((s, m) => s + Number(m.cache_hit_tokens ?? 0), 0);
+  const cacheWrite = filteredStats.reduce((s, m) => s + Number(m.cache_write_tokens ?? 0), 0);
   const cacheHitRate = uncachedInput + cacheHit + cacheWrite > 0
     ? ((cacheHit / (uncachedInput + cacheHit + cacheWrite)) * 100).toFixed(1)
     : '0.0';
 
   const formatTokens = (v: number) => {
-    if (v >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M';
+    if (v >= 1_000_000_000_000) return (v / 1_000_000_000_000).toFixed(2) + 'T';
+    if (v >= 1_000_000_000) return (v / 1_000_000_000).toFixed(2) + 'B';
+    if (v >= 1_000_000) return `${Math.round(v / 1_000_000)}M`;
     if (v >= 1_000) return (v / 1_000).toFixed(1) + 'K';
     return v.toString();
   };
@@ -88,11 +94,21 @@ export function TokenStats() {
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
+          <select
+            className="select select-bordered select-sm w-44"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          >
+            <option value="">{t('common.allModels')}</option>
+            {modelOptions.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
           <TimeRangeTabs value={range} onChange={setRange} />
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 text-sm">
         {[
           { label: t('tokenStats.totalRequests'), value: totalRequests.toLocaleString() },
           {
@@ -105,8 +121,10 @@ export function TokenStats() {
               output: totalOutput,
             },
           },
-          { label: t('tokenStats.totalCost'), value: `$${totalCost.toFixed(4)}` },
+          { label: t('dailyTrends.totalOutput'), value: formatTokens(totalOutput) },
+          { label: t('dailyTrends.cacheTokens'), value: formatTokens(cacheHit) },
           { label: t('tokenStats.cacheHitRateLabel'), value: `${cacheHitRate}%` },
+          { label: t('tokenStats.totalCost'), value: `$${totalCost.toFixed(4)}` },
         ].map((item) => (
           <div key={item.label} className="border border-base-200 rounded-lg px-4 py-2.5 flex-1">
             <div className="text-[11px] font-bold text-base-content/40 uppercase">{item.label}</div>
@@ -129,7 +147,7 @@ export function TokenStats() {
               {t('common.noData')}
             </div>
           ) : (
-            <ModelRankChart data={stats} />
+            <ModelRankChart data={filteredStats} />
           )}
         </div>
       </div>
@@ -139,23 +157,25 @@ export function TokenStats() {
           <table className="table table-sm">
             <thead>
               <tr className="text-base-content/40 text-xs uppercase tracking-wider">
-                <th>{t('tokenStats.tableModel')}</th>
-                <th className="text-right">{t('tokenStats.tableRequests')}</th>
-                <th className="text-right">{t('tokenStats.tableInput')}</th>
-                <th className="text-right">{t('tokenStats.tableOutput')}</th>
-                <th className="text-right">{t('tokenStats.tableTotalTokens')}</th>
-                <th className="text-right">{t('tokenStats.tableCost')}</th>
+                <th>{t('common.model')}</th>
+                <th className="text-right">{t('common.requests')}</th>
+                <th className="text-right">{t('common.input')}</th>
+                <th className="text-right">{t('common.output')}</th>
+                <th className="text-right">{t('dailyTrends.cacheTokens')}</th>
+                <th className="text-right">{t('dailyTrends.cacheRate')}</th>
+                <th className="text-right">{t('common.totalTokens')}</th>
+                <th className="text-right">{t('common.cost')}</th>
               </tr>
             </thead>
             <tbody>
-              {stats.length === 0 ? (
+              {filteredStats.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-base-content/40 text-sm">
+                  <td colSpan={8} className="text-center py-8 text-base-content/40 text-sm">
                     {t('common.noData')}
                   </td>
                 </tr>
               ) : (
-                stats.map((m: ModelTokenStat) => (
+                filteredStats.map((m: ModelTokenStat) => (
                   <tr key={m.model} className="hover">
                     <td className="text-sm font-medium">
                       <div className="flex items-center gap-1.5">
@@ -164,12 +184,18 @@ export function TokenStats() {
                       </div>
                     </td>
                     <td className="text-right text-sm tabular-nums">{m.request_count.toLocaleString()}</td>
-                    <td className="text-right text-sm tabular-nums">{m.total_input_tokens.toLocaleString()}</td>
-                    <td className="text-right text-sm tabular-nums">{m.total_output_tokens.toLocaleString()}</td>
+                    <td className="text-right text-sm tabular-nums">{formatTokens(m.total_input_tokens)}</td>
+                    <td className="text-right text-sm tabular-nums">{formatTokens(m.total_output_tokens)}</td>
+                    <td className="text-right text-sm tabular-nums">{formatTokens(m.cache_hit_tokens ?? 0)}</td>
                     <td className="text-right text-sm tabular-nums">
-                      {(m.total_input_tokens + m.total_output_tokens).toLocaleString()}
+                      {m.uncached_input_tokens + (m.cache_hit_tokens ?? 0) + (m.cache_write_tokens ?? 0) > 0
+                        ? `${(((m.cache_hit_tokens ?? 0) / (m.uncached_input_tokens + (m.cache_hit_tokens ?? 0) + (m.cache_write_tokens ?? 0))) * 100).toFixed(1)}%`
+                        : '0.0%'}
                     </td>
-                    <td className="text-right text-sm tabular-nums">${m.total_cost_usd.toFixed(6)}</td>
+                    <td className="text-right text-sm tabular-nums">
+                      {formatTokens(m.total_input_tokens + m.total_output_tokens)}
+                    </td>
+                    <td className="text-right text-sm tabular-nums">${m.total_cost_usd.toFixed(4)}</td>
                   </tr>
                 ))
               )}

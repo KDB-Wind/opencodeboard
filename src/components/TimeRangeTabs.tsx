@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 export type TimeRange = 'today' | '7d' | '30d' | 'all';
 
-export const TIME_RANGE_STORAGE_KEY = '68hub.timeRange';
+export const TIME_RANGE_STORAGE_KEY = 'opencodeboard.timeRange';
 
 export function getStoredTimeRange(): TimeRange {
   if (typeof window === 'undefined') return '30d';

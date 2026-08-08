@@ -3,7 +3,7 @@ import type { AddressInfo } from 'net';
 import { getRequestListener } from '@hono/node-server';
 import { createApp } from './routes';
 import { ensureBootstrapped } from './bootstrap';
-import { loadServiceConfig, setDataDir } from './config';
+import { loadOrCreateAuthToken, loadServiceConfig, setDataDir } from './config';
 import * as db from './db';
 import { syncUsage } from './usage-sync';
 import { closeDb } from './db';
@@ -100,7 +100,10 @@ export async function startBackendServer(opts: BackendOptions = {}): Promise<{
   const host = opts.host || service.listen_host || '127.0.0.1';
   const port = opts.port ?? service.listen_port ?? 8788;
 
-  const app = createApp({ onConfigUpdated: restartUsageSyncTask });
+  const app = createApp({
+    onConfigUpdated: restartUsageSyncTask,
+    authToken: loadOrCreateAuthToken(),
+  });
   const listener = getRequestListener(app.fetch);
 
   let actualPort = port;

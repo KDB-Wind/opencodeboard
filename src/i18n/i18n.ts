@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import zh from './locales/zh.json';
 import en from './locales/en.json';
 
-const STORAGE_KEY = '68hub-language';
+const STORAGE_KEY = 'opencodeboard-language';
 
 function detectLanguage(): string {
   if (typeof window === 'undefined') return 'zh';

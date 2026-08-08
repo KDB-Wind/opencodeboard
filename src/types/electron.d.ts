@@ -8,6 +8,7 @@ export type ElectronAPI = {
   getVersion: () => Promise<string>;
   getName: () => Promise<string>;
   getBackendPort: () => number;
+  getBackendToken: () => string;
   window: {
     minimize: () => void;
     maximize: () => void;
@@ -21,6 +22,7 @@ export type ElectronAPI = {
     | { status: 'cancelled' }
     | { status: 'error'; error: string }
   >;
+  loginOpenCodeSystem: () => Promise<boolean>;
   backendPid: () => Promise<number | null>;
   getTrayMode: () => Promise<boolean>;
   setTrayMode: (v: boolean) => Promise<boolean>;

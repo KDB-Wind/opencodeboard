@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
+import { createHash, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
 import fs from 'fs';
 import * as db from './db';
@@ -153,8 +153,21 @@ async function fetchQuotaForDashboard(): Promise<Record<string, unknown>[]> {
 
 export type RestartSyncFn = () => void;
 
-export function createApp(opts: { onConfigUpdated?: RestartSyncFn } = {}): Hono {
+function safeTokenEqual(supplied: string, expected: string): boolean {
+  const a = createHash('sha256').update(supplied).digest();
+  const b = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+function isLocalOrigin(origin: string | undefined): boolean {
+  if (!origin) return false;
+  if (origin === 'null') return true; // file:// 页面
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+}
+
+export function createApp(opts: { onConfigUpdated?: RestartSyncFn; authToken?: string } = {}): Hono {
   const app = new Hono();
+  const authToken = opts.authToken ?? '';
 
   app.onError((err, c) => {
     if (err && typeof err === 'object' && 'issues' in err && Array.isArray((err as Record<string, unknown>).issues)) {
@@ -164,14 +177,40 @@ export function createApp(opts: { onConfigUpdated?: RestartSyncFn } = {}): Hono 
     return c.json({ detail: String(err instanceof Error ? err.message : err) }, 500);
   });
 
-  app.use(
-    '*',
-    cors({
-      origin: '*',
-      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowHeaders: ['*'],
-    }),
-  );
+  // 仅允许本地渲染进程(file:// 或 http://127.0.0.1:* / http://localhost:*)
+  app.use('*', async (c, next) => {
+    const origin = c.req.header('origin');
+    const allowed = isLocalOrigin(origin);
+    if (c.req.method === 'OPTIONS') {
+      if (allowed) {
+        c.header('Access-Control-Allow-Origin', origin === 'null' ? 'null' : (origin as string));
+        c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        c.header('Access-Control-Max-Age', '600');
+      }
+      return c.body(null, 204);
+    }
+    await next();
+    const res = c.res;
+    if (allowed && res) {
+      res.headers.set('Access-Control-Allow-Origin', origin === 'null' ? 'null' : (origin as string));
+      res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.headers.set('Vary', 'Origin');
+    }
+    return res;
+  });
+
+  // 每次安装生成随机 token,所有 API 必须携带 Authorization: Bearer <token>
+  app.use('*', async (c, next) => {
+    if (c.req.method === 'OPTIONS') return next();
+    const supplied = c.req.header('authorization') ?? '';
+    const token = supplied.startsWith('Bearer ') ? supplied.slice(7) : '';
+    if (!authToken || !safeTokenEqual(token, authToken)) {
+      return c.json({ detail: 'unauthorized' }, 401);
+    }
+    return next();
+  });
 
   app.get('/api/health', (c) => c.json({ status: 'ok' }));
 

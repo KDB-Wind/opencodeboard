@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { safeStorage } from 'electron';
 import { dataDir } from './config';
 
 export interface OpenCodeAccountRow {
@@ -78,13 +79,36 @@ export function importedFlagPath(): string {
   return path.join(dataDir(), '.imported');
 }
 
+// 敏感凭据(auth cookie / session cookie)用系统级加密(Windows 为 DPAPI)落库,
+// 读取时透明解密;未加密的旧数据或迁移后的数据保持原样可用。
+function encryptSecret(plain: string): string {
+  if (!plain) return '';
+  try {
+    if (safeStorage.isEncryptionAvailable()) {
+      return `enc:${safeStorage.encryptString(plain).toString('base64')}`;
+    }
+  } catch {
+    // fall through to plaintext
+  }
+  return plain;
+}
+
+function decryptSecret(stored: string): string {
+  if (!stored.startsWith('enc:')) return stored;
+  try {
+    return safeStorage.decryptString(Buffer.from(stored.slice(4), 'base64'));
+  } catch {
+    return stored;
+  }
+}
+
 function mapOpenCode(row: Record<string, unknown>): OpenCodeAccountRow {
   return {
     id: String(row.id),
     name: String(row.name),
     workspace_id: String(row.workspace_id),
     resolved_workspace_id: row.resolved_workspace_id != null ? String(row.resolved_workspace_id) : null,
-    auth_cookie: String(row.auth_cookie),
+    auth_cookie: decryptSecret(String(row.auth_cookie)),
     show_rolling: Boolean(row.show_rolling),
     show_weekly: Boolean(row.show_weekly),
     show_monthly: Boolean(row.show_monthly),
@@ -98,7 +122,7 @@ function mapOllama(row: Record<string, unknown>): OllamaAccountRow {
   return {
     id: String(row.id),
     name: String(row.name),
-    session_cookie: String(row.session_cookie),
+    session_cookie: decryptSecret(String(row.session_cookie)),
     show_session: Boolean(row.show_session),
     show_weekly: Boolean(row.show_weekly),
     enabled: Boolean(row.enabled),
@@ -223,6 +247,13 @@ export function initDb(): void {
       conn.exec(`ALTER TABLE usage_records ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`);
     }
   }
+
+  // 存量数据迁移:cost 字段单位为 1e-8 美元,旧版本误除以 1e9(偏低 10 倍),按原始 cost_raw 重算
+  conn.exec(
+    `UPDATE usage_records
+     SET cost_usd = cost_raw / 100000000.0
+     WHERE ABS(cost_usd - cost_raw / 100000000.0) > 0.0000001`,
+  );
 }
 
 export function usageRecordToDict(r: UsageRecordRow): Record<string, unknown> {
@@ -297,7 +328,7 @@ export function createOpencodeAccount(opts: {
       accountId,
       opts.name,
       opts.workspace_id,
-      opts.auth_cookie,
+      encryptSecret(opts.auth_cookie),
       opts.show_rolling !== false ? 1 : 0,
       opts.show_weekly !== false ? 1 : 0,
       opts.show_monthly !== false ? 1 : 0,
@@ -332,6 +363,9 @@ export function updateOpencodeAccount(
     let v = value;
     if (['show_rolling', 'show_weekly', 'show_monthly', 'enabled'].includes(key)) {
       v = value ? 1 : 0;
+    }
+    if (key === 'auth_cookie') {
+      v = encryptSecret(String(v));
     }
     // allow null for resolved_workspace_id
     if (value === null && key !== 'resolved_workspace_id') continue;
@@ -387,7 +421,7 @@ export function createOllamaAccount(opts: {
     .run(
       accountId,
       opts.name,
-      opts.session_cookie,
+      encryptSecret(opts.session_cookie),
       opts.show_session !== false ? 1 : 0,
       opts.show_weekly !== false ? 1 : 0,
       opts.enabled !== false ? 1 : 0,
@@ -411,6 +445,9 @@ export function updateOllamaAccount(
     let v = value;
     if (['show_session', 'show_weekly', 'enabled'].includes(key)) {
       v = value ? 1 : 0;
+    }
+    if (key === 'session_cookie') {
+      v = encryptSecret(String(v));
     }
     updates.push(`${key} = ?`);
     values.push(v);
