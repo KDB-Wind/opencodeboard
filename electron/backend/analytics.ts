@@ -54,12 +54,12 @@ export function applyOpencodeCascade(
 
 export function opencodeEffectiveRemaining(windows: Record<string, unknown>[]): number {
   const cascaded = applyOpencodeCascade(windows);
-  const rolling = windowByLabel(cascaded, LABEL_ROLLING);
-  if (rolling != null) return Number(rolling.effective_remaining ?? 0);
-  const weekly = windowByLabel(cascaded, LABEL_WEEKLY);
-  if (weekly != null) return Number(weekly.effective_remaining ?? 0);
   const monthly = windowByLabel(cascaded, LABEL_MONTHLY);
   if (monthly != null) return Number(monthly.effective_remaining ?? 0);
+  const weekly = windowByLabel(cascaded, LABEL_WEEKLY);
+  if (weekly != null) return Number(weekly.effective_remaining ?? 0);
+  const rolling = windowByLabel(cascaded, LABEL_ROLLING);
+  if (rolling != null) return Number(rolling.effective_remaining ?? 0);
   return 0.0;
 }
 
