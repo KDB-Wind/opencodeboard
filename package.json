@@ -1,6 +1,6 @@
 {
   "name": "opencodeboard",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "OpenCode Go 用量统计面板",
   "main": "dist-electron/main.js",
   "author": "OpenCodeBoard",
@@ -119,3 +119,4 @@
     "zod": "^4.4.3"
   }
 }
+
