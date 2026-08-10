@@ -4,7 +4,7 @@ import { usePolling } from '../hooks/usePolling';
 import { api } from '../api/client';
 import type { ModelTokenStat, OpenCodeAccount } from '../api/types';
 import { ModelIcon } from '../components/ModelIcon';
-import { ModelRankChart } from '../components/ModelRankChart';
+import { ModelRankList } from '../components/ModelRankList';
 import { TokenBreakdownTooltip } from '../components/TokenBreakdownTooltip';
 import { DailyChart } from '../components/DailyChart';
 import { getStoredTimeRange, storeTimeRange, TimeRangeTabs, type TimeRange } from '../components/TimeRangeTabs';
@@ -143,15 +143,9 @@ export function TokenStats() {
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-bold text-base-content/50 uppercase">{t('tokenStats.modelUsage')}</h3>
-            <span className="text-[10px] text-base-content/30">{t('tokenStats.logScale')}</span>
+            <span className="text-[10px] text-base-content/30">{t('tokenStats.modelCount', { count: filteredStats.length })}</span>
           </div>
-          {stats.length === 0 ? (
-            <div className="flex items-center justify-center h-48 text-base-content/40 text-sm">
-              {t('common.noData')}
-            </div>
-          ) : (
-            <ModelRankChart data={filteredStats} />
-          )}
+          <ModelRankList data={filteredStats} />
         </div>
       </div>
 
