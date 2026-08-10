@@ -71,7 +71,11 @@
     "allGood": "All accounts healthy, running normally",
     "mostConsumed": "Most consumed model is {{model}}, accounting for {{percent}}%",
     "noModelData": "Unable to fetch model usage data",
-    "heroTooltipTokens": "Tokens"
+    "heroTooltipTokens": "Tokens",
+    "syncAll": "Sync & Backfill",
+    "syncing": "Syncing…",
+    "syncDone": "Sync complete, {{count}} new records",
+    "syncFailed": "Sync failed: {{error}}"
   },
   "tokenStats": {
     "title": "Usage Stats",

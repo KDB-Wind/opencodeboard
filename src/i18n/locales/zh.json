@@ -71,7 +71,11 @@
     "allGood": "各账户额度充足，运行正常",
     "mostConsumed": "消耗最多的模型是 {{model}}，占比 {{percent}}%",
     "noModelData": "暂无法获取模型用量数据",
-    "heroTooltipTokens": "Tokens"
+    "heroTooltipTokens": "Tokens",
+    "syncAll": "同步并回填",
+    "syncing": "同步中…",
+    "syncDone": "同步完成，新增 {{count}} 条记录",
+    "syncFailed": "同步失败：{{error}}"
   },
   "tokenStats": {
     "title": "用量统计",

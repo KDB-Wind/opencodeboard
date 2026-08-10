@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import { ModelIcon } from '../components/ModelIcon';
 import { UsageTable } from '../components/UsageTable';
 import { TokenBreakdownTooltip } from '../components/TokenBreakdownTooltip';
+import { useToast } from '../components/Toast';
 import { getStoredTimeRange, storeTimeRange, TimeRangeTabs, type TimeRange } from '../components/TimeRangeTabs';
 import type { QuotaWindow } from '../api/types';
 
@@ -154,23 +155,50 @@ function ModelDonut({ models: raw }: { models: { model: string; total_input_toke
 
 export function Dashboard() {
   const { t, i18n } = useTranslation();
+  const { toast } = useToast();
   const [topPeriod, setTopPeriod] = useState<TimeRange>(getStoredTimeRange);
+  const [syncing, setSyncing] = useState(false);
   useEffect(() => {
     storeTimeRange(topPeriod);
   }, [topPeriod]);
-  const { data, loading } = usePolling(() => api.getDashboard('30d'), 30000);
+  const { data, loading, refetch: refetchDashboard } = usePolling(() => api.getDashboard('30d'), 30000);
 
-  const { data: todayData } = usePolling(
+  const { data: todayData, refetch: refetchToday } = usePolling(
     () => api.getModelTokenStats(1, undefined, 'today'),
     60000,
   );
 
-  const { data: topData } = usePolling(
+  const { data: topData, refetch: refetchTop } = usePolling(
     () => api.getModelTokenStats(1, undefined, topPeriod),
     60000,
     true,
     [topPeriod],
   );
+
+  const handleSyncAll = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    let total = 0;
+    try {
+      const accounts = await api.listOpenCodeAccounts();
+      for (const account of accounts) {
+        try {
+          const synced = await api.syncUsage(account.id);
+          total += synced.inserted ?? 0;
+          const backfilled = await api.backfillUsage(account.id);
+          total += backfilled.inserted ?? 0;
+        } catch (err) {
+          toast(t('dashboard.syncFailed', { error: String(err instanceof Error ? err.message : err) }), 'error');
+        }
+      }
+      toast(t('dashboard.syncDone', { count: total }), 'success');
+      refetchDashboard();
+      refetchToday();
+      refetchTop();
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const overview = data?.overview?.opencode;
   const quota = (data?.quota ?? []).filter((q) => q.success);
@@ -231,7 +259,12 @@ export function Dashboard() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-bold">{t('dashboard.title')}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-bold">{t('dashboard.title')}</h1>
+        <button className="btn btn-primary btn-sm" onClick={handleSyncAll} disabled={syncing}>
+          {syncing ? t('dashboard.syncing') : t('dashboard.syncAll')}
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {hero.map((h) => (
