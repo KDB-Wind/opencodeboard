@@ -94,6 +94,15 @@ export function Settings() {
   const [autoSync, setAutoSync] = useState(true);
   const [syncInterval, setSyncInterval] = useState(300);
   const [backfillPages, setBackfillPages] = useState(100);
+  const syncConfigLoadedRef = useRef(false);
+  useEffect(() => {
+    if (config?.usage_sync && !syncConfigLoadedRef.current) {
+      syncConfigLoadedRef.current = true;
+      setAutoSync(config.usage_sync.auto_sync ?? true);
+      setSyncInterval(config.usage_sync.interval_sec ?? 300);
+      setBackfillPages(config.usage_sync.backfill_pages_per_request ?? 100);
+    }
+  }, [config]);
   const [trayMode, setTrayMode] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<OpenCodeAccount | null>(null);
   const addModal = useRef<HTMLDialogElement>(null);
