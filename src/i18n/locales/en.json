@@ -91,6 +91,7 @@
     "output": "Output",
     "cacheHitRate": "Cache hit rate: {{rate}}%",
     "modelUsage": "Token Usage by Model",
+    "logScale": "Log scale",
     "tableModel": "Model",
     "tableRequests": "Requests",
     "tableInput": "Input",

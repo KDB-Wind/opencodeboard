@@ -91,6 +91,7 @@
     "output": "输出",
     "cacheHitRate": "缓存命中率：{{rate}}%",
     "modelUsage": "各模型 Token 使用量",
+    "logScale": "对数刻度",
     "tableModel": "模型",
     "tableRequests": "请求数",
     "tableInput": "输入",

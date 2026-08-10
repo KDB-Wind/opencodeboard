@@ -141,7 +141,10 @@ export function TokenStats() {
 
       <div className="border border-base-200 rounded-xl overflow-hidden">
         <div className="p-4">
-          <h3 className="text-xs font-bold text-base-content/50 uppercase mb-2">{t('tokenStats.modelUsage')}</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-bold text-base-content/50 uppercase">{t('tokenStats.modelUsage')}</h3>
+            <span className="text-[10px] text-base-content/30">{t('tokenStats.logScale')}</span>
+          </div>
           {stats.length === 0 ? (
             <div className="flex items-center justify-center h-48 text-base-content/40 text-sm">
               {t('common.noData')}

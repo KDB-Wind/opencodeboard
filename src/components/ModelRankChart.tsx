@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  LabelList,
 } from 'recharts';
 import type { ModelTokenStat } from '../api/types';
 import { ModelIcon } from './ModelIcon';
@@ -58,8 +59,9 @@ export function ModelRankChart({ data, height = 320, compact }: ModelRankChartPr
     ...chartData.map((d) => Math.max(d.输入, d.输出)),
     0,
   );
-  const scaleTicks = [0, 3, 6, 9].filter((v) => v <= maxDisplayValue);
-  if (maxDisplayValue > 0 && scaleTicks[scaleTicks.length - 1] !== maxDisplayValue) {
+  const LOG_TICKS = [0, 3, 4, 5, 6, 7, 8];
+  const scaleTicks = LOG_TICKS.filter((v) => v <= maxDisplayValue);
+  if (maxDisplayValue > 0 && !scaleTicks.includes(maxDisplayValue)) {
     scaleTicks.push(maxDisplayValue);
   }
 
@@ -69,7 +71,7 @@ export function ModelRankChart({ data, height = 320, compact }: ModelRankChartPr
         data={chartData}
         barCategoryGap={compact ? '35%' : data.length <= 3 ? '8%' : '15%'}
         barGap={0}
-        margin={{ left: 24, right: 8 }}
+        margin={{ left: 24, right: 8, top: compact ? 12 : 20 }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.87 0.01 80)" vertical={false} />
         <XAxis
@@ -113,8 +115,22 @@ export function ModelRankChart({ data, height = 320, compact }: ModelRankChartPr
             <span className={`${compact ? 'text-[10px]' : 'text-xs'} text-base-content/70`}>{value === '输入' ? '输入' : '输出'}</span>
           )}
         />
-        <Bar dataKey="输入" fill="oklch(0.6 0.15 200)" radius={[2, 2, 0, 0]} maxBarSize={barSize} />
-        <Bar dataKey="输出" fill="oklch(0.65 0.18 340)" radius={[2, 2, 0, 0]} maxBarSize={barSize} />
+        <Bar dataKey="输入" fill="oklch(0.6 0.15 200)" radius={[2, 2, 0, 0]} maxBarSize={barSize}>
+          <LabelList
+            dataKey="rawInput"
+            position="top"
+            formatter={(v) => formatTokens(Number(v))}
+            style={{ fontSize: compact ? 8 : 10, fill: 'oklch(0.5 0.02 80)' }}
+          />
+        </Bar>
+        <Bar dataKey="输出" fill="oklch(0.65 0.18 340)" radius={[2, 2, 0, 0]} maxBarSize={barSize}>
+          <LabelList
+            dataKey="rawOutput"
+            position="top"
+            formatter={(v) => formatTokens(Number(v))}
+            style={{ fontSize: compact ? 8 : 10, fill: 'oklch(0.5 0.02 80)' }}
+          />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
