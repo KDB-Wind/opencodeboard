@@ -54,7 +54,7 @@
     "avgRemainingRatio": "Avg Remaining Ratio",
     "totalTokenConsumption": "Total Token Consumption",
     "todayTokenUsage": "Today's Tokens",
-    "todayTokenDesc": "UTC calendar day",
+    "todayTokenDesc": "Local calendar day",
     "totalCost": "Total Cost",
     "totalCostDesc": "Last 30 days",
     "requests": "{{count}} Requests",

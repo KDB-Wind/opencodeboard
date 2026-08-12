@@ -1,6 +1,6 @@
 {
   "name": "opencodeboard",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "OpenCode Go 用量统计面板",
   "main": "dist-electron/main.js",
   "author": "OpenCodeBoard",
@@ -28,7 +28,10 @@
     "npmRebuild": false,
     "afterPack": "scripts/after-pack.js",
     "compression": "maximum",
-    "electronLanguages": ["zh-CN", "en-US"],
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -54,19 +57,35 @@
     "win": {
       "icon": "public/icon.png",
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "mac": {
       "icon": "public/icon.png",
       "target": [
-        { "target": "dmg", "arch": ["arm64", "x64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
       ]
     },
     "linux": {
       "icon": "public/icon.png",
       "target": [
-        { "target": "AppImage", "arch": ["x64"] }
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
@@ -114,14 +133,10 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.10",
+    "@lobehub/icons": "^5.15.0",
     "better-sqlite3": "^12.11.1",
     "hono": "^4.12.30",
     "zod": "^4.4.3"
   }
 }
-
-
-
-
-
 

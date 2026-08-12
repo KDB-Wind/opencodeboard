@@ -230,7 +230,10 @@ export function Dashboard() {
       {
         label: t('dashboard.todayTokenUsage'),
         value: todayData ? fmt(today) : '-',
-        sub: t('dashboard.todayTokenDesc'),
+        sub: `${t('dashboard.todayTokenDesc')} · ${new Date().toLocaleDateString(
+          i18n.language === 'zh' ? 'zh-CN' : 'en-US',
+          { year: 'numeric', month: '2-digit', day: '2-digit' },
+        )}`,
         breakdown: null,
         size: 'md',
       },

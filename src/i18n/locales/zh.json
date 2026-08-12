@@ -54,7 +54,7 @@
     "avgRemainingRatio": "平均剩余比例",
     "totalTokenConsumption": "总 Token 消耗",
     "todayTokenUsage": "今日 Token 使用",
-    "todayTokenDesc": "UTC 自然日",
+    "todayTokenDesc": "本地自然日",
     "totalCost": "总费用",
     "totalCostDesc": "近 30 天",
     "requests": "{{count}} 次请求",
