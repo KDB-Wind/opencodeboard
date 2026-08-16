@@ -7,6 +7,8 @@
 </p>
 
 > 感谢原项目 [68hub](https://github.com/evanfu0110/68hub) 作者的开源贡献。本分支专注于 Windows 平台与个人使用体验，功能、行为与上游可能存在差异。
+>
+> 🚀 **下一代版本：[OpenCodeGoBoard](https://github.com/KDB-Wind/opencodegoboard)** — 基于本项目的 Tauri 2 + Rust 重构版，安装包与内存占用大幅减小，本地 SQLite + Windows Credential Manager，不再依赖 Electron / Hono / 本地端口。
 
 ---
 

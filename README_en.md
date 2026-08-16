@@ -7,6 +7,8 @@
 </p>
 
 > Thanks to the original author of [68hub](https://github.com/evanfu0110/68hub) for the open-source contribution. This fork focuses on Windows and personal use; features and behavior may differ from upstream.
+>
+> 🚀 **Next generation: [OpenCodeGoBoard](https://github.com/KDB-Wind/opencodegoboard)** — a Tauri 2 + Rust rewrite based on this project, with a much smaller installer and memory footprint, local SQLite + Windows Credential Manager, and no Electron / Hono / localhost port.
 
 ---
 
