@@ -6,9 +6,11 @@
   <a href="./README.md"><img src="./assets/readme/lang-en.svg" width="100%" alt="Switch to 中文"></a>
 </p>
 
-> Thanks to the original author of [68hub](https://github.com/evanfu0110/68hub) for the open-source contribution. This fork focuses on Windows and personal use; features and behavior may differ from upstream.
+> ⚠️ **This project is no longer maintained.** Please use the new [OpenCodeGoBoard](https://github.com/KDB-Wind/opencodegoboard).
 >
-> 🚀 **Next generation: [OpenCodeGoBoard](https://github.com/KDB-Wind/opencodegoboard)** — a Tauri 2 + Rust rewrite based on this project, with a much smaller installer and memory footprint, local SQLite + Windows Credential Manager, and no Electron / Hono / localhost port.
+> OpenCodeGoBoard is a Tauri 2 + Rust rewrite based on this project's ideas. Compared with this legacy Electron-based version, it has a substantially smaller Windows installer and lower runtime memory usage; it uses local SQLite and Windows Credential Manager, with no Electron / Hono / localhost HTTP service. This repository is kept for historical reference only.
+>
+> Thanks to the original author of [68hub](https://github.com/evanfu0110/68hub) for the open-source contribution. This fork focuses on Windows and personal use; features and behavior may differ from upstream.
 
 ---
 
